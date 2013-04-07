@@ -5,6 +5,7 @@ config REMOTEPROC
 	tristate
 	depends on EXPERIMENTAL
 	depends on HAS_DMA
+	select CRC32
 	select FW_CONFIG
 	select VIRTIO
 
