@@ -8,5 +8,6 @@ config REMOTEPROC
 	select CRC32
 	select FW_LOADER
 	select VIRTIO
+	select VIRTUALIZATION
 
 endmenu
