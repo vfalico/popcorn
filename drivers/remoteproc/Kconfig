@@ -10,4 +10,12 @@ config REMOTEPROC
 	select VIRTIO
 	select VIRTUALIZATION
 
+config DUMMY_REMOTEPROC
+	tristate "Dummy remoteproc support"
+	select REMOTEPROC
+	select RPMSG
+	help
+	  Say y here to enable support for a dummy remote processor driver
+	  via the remote processor framework.
+
 endmenu
