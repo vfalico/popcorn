@@ -14,8 +14,12 @@ config DUMMY_REMOTEPROC
 	tristate "Dummy remoteproc support"
 	select REMOTEPROC
 	select RPMSG
+	select DUMMY_RESOURCETABLE
 	help
 	  Say y here to enable support for a dummy remote processor driver
 	  via the remote processor framework.
+
+config DUMMY_RESOURCETABLE
+	tristate "Dummy remoteproc's driver resource table"
 
 endmenu
