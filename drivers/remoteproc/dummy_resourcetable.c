@@ -42,7 +42,7 @@ struct dummy_rproc_resourcetable dummy_remoteproc_resourcetable
 		RSC_CARVEOUT,		/* mem resource */
 	},
 	.rsc_mem = {
-		FW_RSC_ADDR_ANY,	/* we don't care about the dev address */
+		(u32) FW_RSC_ADDR_ANY,	/* we don't care about the dev address */
 		0,			/* here be physicall address */
 		1 << 30,		/* 1GB please */
 		0,			/* TODO flags */
