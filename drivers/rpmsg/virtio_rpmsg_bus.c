@@ -247,7 +247,7 @@ static struct rpmsg_endpoint *__rpmsg_create_ept(struct virtproc_info *vrp,
 
 	/* make sure the user's address request is fulfilled, if relevant */
 	if (addr != RPMSG_ADDR_ANY && tmpaddr != addr) {
-		dev_err(dev, "address 0x%x already in use\n", addr);
+		dev_err(dev, "address 0x%lx already in use\n", addr);
 		goto rem_idr;
 	}
 
