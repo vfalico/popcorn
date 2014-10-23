@@ -587,7 +587,7 @@ static int rproc_handle_carveout(struct rproc *rproc,
 
 	va = dma_alloc_coherent(dev->parent, rsc->len, &dma, GFP_KERNEL);
 	if (!va) {
-		dev_err(dev->parent, "dma_alloc_coherent err: %d\n", rsc->len);
+		dev_err(dev->parent, "dma_alloc_coherent couldn't allocate %d bytes\n", rsc->len);
 		ret = -ENOMEM;
 		goto free_carv;
 	}
