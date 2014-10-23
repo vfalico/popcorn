@@ -43,8 +43,8 @@ struct dummy_rproc_resourcetable dummy_remoteproc_resourcetable
 	},
 	.rsc_mem = {
 		(u32) FW_RSC_ADDR_ANY,	/* we don't care about the dev address */
-		0,			/* here be physicall address */
-		1 << 30,		/* 1GB please */
+		0x40000000,		/* here be physicall address */
+		0x51f0000,		/* size please */
 		0,			/* TODO flags */
 		0,			/* reserved - 0 */
 		"dummy-rproc-mem",
