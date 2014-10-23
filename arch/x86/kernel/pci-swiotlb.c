@@ -14,7 +14,7 @@
 #include <asm/iommu_table.h>
 int swiotlb __read_mostly;
 
-static void *x86_swiotlb_alloc_coherent(struct device *hwdev, size_t size,
+void *x86_swiotlb_alloc_coherent(struct device *hwdev, size_t size,
 					dma_addr_t *dma_handle, gfp_t flags,
 					struct dma_attrs *attrs)
 {
