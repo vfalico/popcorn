@@ -69,11 +69,22 @@ struct cma *dma_contiguous_default_area;
 static unsigned long size_bytes = CMA_SIZE_MBYTES * SZ_1M;
 static unsigned long size_percent = CMA_SIZE_PERCENTAGE;
 static long size_cmdline = -1;
+static phys_addr_t base_cmdline;
+static phys_addr_t limit_cmdline;
 
 static int __init early_cma(char *p)
 {
 	pr_debug("%s(%s)\n", __func__, p);
 	size_cmdline = memparse(p, &p);
+	if (*p != '@')
+		return 0;
+	base_cmdline = memparse(p + 1, &p);
+	if (*p != '-') {
+		limit_cmdline = base_cmdline + size_cmdline;
+		return 0;
+	}
+	limit_cmdline = memparse(p + 1, &p);
+
 	return 0;
 }
 early_param("cma", early_cma);
@@ -106,6 +117,9 @@ void __init dma_contiguous_reserve(phys_addr_t limit)
 {
 	unsigned long selected_size = 0;
 	unsigned long total_pages;
+	unsigned long selected_base = 0;
+	unsigned long selected_limit = limit;
+	bool fixed = false;
 
 	pr_debug("%s(limit %08lx)\n", __func__, (unsigned long)limit);
 
@@ -126,8 +140,13 @@ void __init dma_contiguous_reserve(phys_addr_t limit)
 	selected_size = max(size_bytes, size_percent);
 #endif
 
-	if (size_cmdline != -1)
+	if (size_cmdline != -1) {
 		selected_size = size_cmdline;
+		selected_base = base_cmdline;
+		selected_limit = min_not_zero(limit_cmdline, limit);
+		if (base_cmdline + size_cmdline == limit_cmdline)
+			fixed = true;
+	}
 
 	if (!selected_size)
 		return;
@@ -135,7 +154,8 @@ void __init dma_contiguous_reserve(phys_addr_t limit)
 	pr_debug("%s: reserving %ld MiB for global area\n", __func__,
 		 selected_size / SZ_1M);
 
-	dma_declare_contiguous(NULL, selected_size, 0, limit);
+	dma_declare_contiguous(NULL, selected_size, selected_base,
+			       selected_limit, fixed);
 };
 
 static DEFINE_MUTEX(cma_mutex);
@@ -234,7 +254,8 @@ core_initcall(cma_init_reserved_areas);
  * is still activate.
  */
 int __init dma_declare_contiguous(struct device *dev, unsigned long size,
-				  phys_addr_t base, phys_addr_t limit)
+				  phys_addr_t base, phys_addr_t limit,
+				  bool fixed)
 {
 	struct cma_reserved *r = &cma_reserved[cma_reserved_count];
 	unsigned long alignment;
@@ -259,17 +280,16 @@ int __init dma_declare_contiguous(struct device *dev, unsigned long size,
 	limit = ALIGN(limit, alignment);
 
 	/* Reserve memory */
-	if (base) {
+	if (base && fixed) {
 		if (memblock_is_region_reserved(base, size) ||
 		    memblock_reserve(base, size) < 0) {
 			base = -EBUSY;
 			goto err;
 		}
 	} else {
-		/*
-		 * Use __memblock_alloc_base() since
-		 * memblock_alloc_base() panic()s.
-		 */
+		pr_warn("Sorry, my shitty backport of cma params doesn't "
+			"support base alignment and variable limit, so base is"
+			" ignored\n");
 		phys_addr_t addr = __memblock_alloc_base(size, alignment, limit);
 		if (!addr) {
 			base = -ENOMEM;
