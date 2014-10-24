@@ -766,6 +766,7 @@ int __cpuinit mkbsp_boot_cpu(int apicid, int cpu, unsigned long kernel_start_add
 
 	return boot_error;
 }
+EXPORT_SYMBOL_GPL(mkbsp_boot_cpu);
 
 
 

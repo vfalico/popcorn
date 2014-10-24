@@ -24,6 +24,8 @@
 
 #define pr_fmt(fmt)    "%s: " fmt, __func__
 
+#define DEBUG
+
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/device.h>
@@ -170,10 +172,11 @@ void *rproc_da_to_va(struct rproc *rproc, unsigned long da, int len)
 	void *ptr = NULL;
 
 	list_for_each_entry(carveout, &rproc->carveouts, node) {
-		int offset = da - carveout->da;
+		unsigned long offset = da - carveout->da;
+		printk(KERN_ERR"search for da 0x%lx len 0x%lx, carveout->da 0x%lx offset 0x%lx\n", da, len, carveout->da, offset);
 
 		/* try next carveout if da is too small */
-		if (offset < 0)
+		if (da < carveout->da)
 			continue;
 
 		/* try next carveout if da is too large */
@@ -184,7 +187,8 @@ void *rproc_da_to_va(struct rproc *rproc, unsigned long da, int len)
 
 		break;
 	}
-
+	if (!ptr)
+		dump_stack();
 	return ptr;
 }
 EXPORT_SYMBOL(rproc_da_to_va);
@@ -211,11 +215,13 @@ int rproc_alloc_vring(struct rproc_vdev *rvdev, int i)
 	 * Allocate non-cacheable memory for the vring. In the future
 	 * this call will also configure the IOMMU for us
 	 */
+	dev_info(dev->parent, "allocating...\n");
 	va = dma_alloc_coherent(dev->parent, size, &dma, GFP_KERNEL);
 	if (!va) {
 		dev_err(dev->parent, "dma_alloc_coherent failed\n");
 		return -EINVAL;
 	}
+	dev_info(dev->parent, "allocated, got %p\n", va);
 
 	/*
 	 * Assign an rproc-wide unique index for this vring
@@ -229,7 +235,7 @@ int rproc_alloc_vring(struct rproc_vdev *rvdev, int i)
 		return ret;
 	}
 
-	dev_dbg(dev, "vring%d: va %p dma %llx size %x idr %d\n", i, va,
+	dev_info(dev, "vring%d: va %p dma %llx size %x idr %d\n", i, va,
 				(unsigned long long)dma, size, notifyid);
 
 	rvring->va = va;
@@ -664,7 +670,10 @@ static int rproc_handle_carveout(struct rproc *rproc,
 	carveout->va = va;
 	carveout->len = rsc->len;
 	carveout->dma = dma;
-	carveout->da = rsc->da;
+	if (rsc->da != (u32) FW_RSC_ADDR_ANY)
+		carveout->da = rsc->da;
+	else
+		carveout->da = dma;
 
 	list_add_tail(&carveout->node, &rproc->carveouts);
 
@@ -824,6 +833,7 @@ static int rproc_fw_boot(struct rproc *rproc, const struct firmware *fw)
 	/* look for the resource table */
 	table = rproc_find_rsc_table(rproc, fw, &tablesz);
 	if (!table) {
+		dev_err(dev, "cannot find table\n");
 		goto clean_up;
 	}
 
@@ -856,6 +866,7 @@ static int rproc_fw_boot(struct rproc *rproc, const struct firmware *fw)
 	 */
 	loaded_table = rproc_find_loaded_rsc_table(rproc, fw);
 	if (!loaded_table) {
+		dev_err(dev, "Failed to find loaded resource table\n");
 		ret = -EINVAL;
 		goto clean_up;
 	}

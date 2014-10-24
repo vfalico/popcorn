@@ -17,11 +17,34 @@
 #include <linux/remoteproc.h>
 #include <linux/platform_device.h>
 #include <linux/dma-mapping.h>
+#include <linux/cpu.h>
+#include <linux/kernel.h>
+#include <linux/export.h>
+#include <linux/percpu.h>
+#include <linux/gfp.h>
+#include <linux/smp.h>
 
 static int dummy_rproc_start(struct rproc *rproc)
 {
+	int apicid, apicid_1;
+	int cpu = 1;
+	unsigned long kernel_start_address= 0x48000000;
 	dev_notice(&rproc->dev, "Powering up remote processor\n");
-	return 0;
+
+	printk("multikernel boot: got to multikernel_boot syscall, cpu %d, apicid %d (%x), kernel start address 0x%lx\n",
+			cpu, apic->cpu_present_to_apicid(cpu), BAD_APICID,kernel_start_address);
+
+	apicid_1 = per_cpu(x86_bios_cpu_apicid, cpu);
+
+	apicid = apic->cpu_present_to_apicid(cpu);
+	if (apicid == BAD_APICID)
+		printk(KERN_ERR"The CPU is not present in the current present_mask (OK to continue), apicid = %d, apicid_1 = %d\n", apicid, apicid_1);
+	else {
+		printk(KERN_ERR"The CPU is currently running with this kernel instance. First put it offline and then continue. apicid = %d, apicid_1 = %d\n", apicid, apicid_1);
+		return -1;
+	}
+	apicid = per_cpu(x86_bios_cpu_apicid, cpu);  
+	return mkbsp_boot_cpu(apicid, cpu, kernel_start_address);
 }
 
 static int dummy_rproc_stop(struct rproc *rproc)

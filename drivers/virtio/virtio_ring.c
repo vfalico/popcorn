@@ -193,8 +193,8 @@ int virtqueue_add_buf_gfp(struct virtqueue *_vq,
 	BUG_ON(out + in == 0);
 
 	if (vq->num_free < out + in) {
-		pr_debug("Can't add buf len %i - avail = %i\n",
-			 out + in, vq->num_free);
+		pr_err("Can't add buf len %i - avail = %i\n",
+		       out + in, vq->num_free);
 		/* FIXME: for historical reasons, we force a notify here if
 		 * there are outgoing parts to the buffer.  Presumably the
 		 * host should service the ring ASAP. */

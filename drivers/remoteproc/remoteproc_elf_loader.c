@@ -114,9 +114,15 @@ rproc_elf64_load_segments(struct rproc *rproc, const struct firmware *fw)
 	ehdr = (Elf64_Ehdr *)elf_data;
 	phdr = (Elf64_Phdr *)(elf_data + ehdr->e_phoff);
 
+	for (i = 0; i < ehdr->e_phnum; i++, phdr++) {
+		dev_info(dev, " segment %d ph addr 0x%lx size 0x%lx\n", i, phdr->p_paddr, phdr->p_memsz);
+	}
+
+	phdr = (Elf64_Phdr *)(elf_data + ehdr->e_phoff);
 	/* go through the available ELF segments */
 	for (i = 0; i < ehdr->e_phnum; i++, phdr++) {
 		unsigned long da = phdr->p_paddr;
+		if (da < 0x48000000) da += 0x48000000 - 0x1000000;
 		unsigned long memsz = phdr->p_memsz;
 		unsigned long filesz = phdr->p_filesz;
 		unsigned long offset = phdr->p_offset;
@@ -472,7 +478,8 @@ rproc_elf64_find_loaded_rsc_table(struct rproc *rproc,
 	if (!shdr)
 		return NULL;
 
-	return rproc_da_to_va(rproc, shdr->sh_addr, shdr->sh_size);
+//	return rproc_da_to_va(rproc, shdr->sh_addr, shdr->sh_size);
+	return shdr->sh_addr;
 }
 
 /**

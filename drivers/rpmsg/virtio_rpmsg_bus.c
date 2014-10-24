@@ -985,7 +985,7 @@ static int rpmsg_probe(struct virtio_device *vdev)
 		goto vqs_del;
 	}
 
-	dev_dbg(&vdev->dev, "buffers: va %p, dma 0x%llx\n", bufs_va,
+	dev_info(&vdev->dev, "buffers: va %p, dma 0x%llx\n", bufs_va,
 					(unsigned long long)vrp->bufs_dma);
 
 	/* half of the buffers is dedicated for RX */
@@ -1003,7 +1003,7 @@ static int rpmsg_probe(struct virtio_device *vdev)
 
 		err = virtqueue_add_buf_gfp(vrp->rvq, &sg, 0, 1, cpu_addr,
 								GFP_KERNEL);
-		WARN_ON(err < 0); /* sanity check; this can't really happen */
+//		WARN_ON(err < 0); /* sanity check; this can't really happen */
 	}
 
 	/* suppress "tx-complete" interrupts */

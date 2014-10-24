@@ -43,7 +43,7 @@ struct dummy_rproc_resourcetable dummy_remoteproc_resourcetable
 	},
 	.rsc_mem = {
 		(u32) FW_RSC_ADDR_ANY,	/* we don't care about the dev address */
-		0x40000000,		/* here be physicall address */
+		0x48000000,		/* here be physicall address */
 		0x51f0000,		/* size please */
 		0,			/* TODO flags */
 		0,			/* reserved - 0 */
@@ -65,14 +65,14 @@ struct dummy_rproc_resourcetable dummy_remoteproc_resourcetable
 	.rsc_ring0 = {
 		0,			/* we don't (??) care about the dev addr */
 		PAGE_SIZE,		/* alignment */
-		16,			/* number of buffers */
+		512,			/* number of buffers */
 		0xC001DEA2,		/* magic number for IPC */
 		0,			/* reserved - 0 */
 	},
 	.rsc_ring1 = {
 		0,			/* we don't (??) care about the dev addr */
 		PAGE_SIZE,		/* alignment */
-		16,			/* number of buffers */
+		512,			/* number of buffers */
 		0xC001DEA3,		/* magic number for IPC */
 		0,			/* reserved - 0 */
 	},

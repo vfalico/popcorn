@@ -32,6 +32,8 @@
 #include <linux/mm_types.h>
 #include <linux/dma-contiguous.h>
 
+#include <linux/multikernel.h>
+
 #ifndef SZ_1M
 #define SZ_1M (1 << 20)
 #endif
@@ -120,6 +122,9 @@ void __init dma_contiguous_reserve(phys_addr_t limit)
 	unsigned long selected_base = 0;
 	unsigned long selected_limit = limit;
 	bool fixed = false;
+
+	if (mklinux_boot)
+		return;
 
 	pr_debug("%s(limit %08lx)\n", __func__, (unsigned long)limit);
 
