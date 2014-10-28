@@ -676,7 +676,8 @@ static void __cpuinit announce_cpu(int cpu, int apicid)
  * ->wakeup_secondary_cpu.
  */
 
-int __cpuinit mkbsp_boot_cpu(int apicid, int cpu, unsigned long kernel_start_address)
+int __cpuinit mkbsp_boot_cpu(int apicid, int cpu, unsigned long kernel_start_address,
+			     char *cmdline)
 {
 	unsigned long boot_error = 0;
 	unsigned long start_ip;
@@ -691,7 +692,7 @@ int __cpuinit mkbsp_boot_cpu(int apicid, int cpu, unsigned long kernel_start_add
 	unsigned long *boot_params_virt_addr = TRAMPOLINE_SYM_BSP(&boot_params_phys_addr);
 	
 	*kernel_virt_addr = kernel_start_address;
-	*boot_params_virt_addr = orig_boot_params;
+	*boot_params_virt_addr = cmdline;
 
 	/* start_ip had better be page-aligned! */
 	start_ip = trampoline_bsp_address();

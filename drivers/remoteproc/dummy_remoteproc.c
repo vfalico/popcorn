@@ -24,12 +24,18 @@
 #include <linux/gfp.h>
 #include <linux/smp.h>
 
+char *cmdline_override="";
+module_param(cmdline_override, charp, 0000);
+MODULE_PARM_DESC(cmdline_override, "kernel boot paramters to pass to the second cpu");
+
 static int dummy_rproc_start(struct rproc *rproc)
 {
 	int apicid, apicid_1;
 	int cpu = 1;
 	unsigned long kernel_start_address= 0x48000000;
 	dev_notice(&rproc->dev, "Powering up remote processor\n");
+
+	dev_notice(&rproc->dev, "boot params: %s\n", cmdline_override);
 
 	printk("multikernel boot: got to multikernel_boot syscall, cpu %d, apicid %d (%x), kernel start address 0x%lx\n",
 			cpu, apic->cpu_present_to_apicid(cpu), BAD_APICID,kernel_start_address);
@@ -44,7 +50,7 @@ static int dummy_rproc_start(struct rproc *rproc)
 		return -1;
 	}
 	apicid = per_cpu(x86_bios_cpu_apicid, cpu);  
-	return mkbsp_boot_cpu(apicid, cpu, kernel_start_address);
+	return mkbsp_boot_cpu(apicid, cpu, kernel_start_address, cmdline_override);
 }
 
 static int dummy_rproc_stop(struct rproc *rproc)
