@@ -607,8 +607,7 @@ static int __init pcn_kmsg_init(void)
 		   of the kernels where the master kernel's messaging window 
 		   is. */
 		KMSG_INIT("Setting boot_params...\n");
-		boot_params_va = (struct boot_params *) 
-			(0xffffffff80000000 + orig_boot_params);
+		boot_params_va = __va(orig_boot_params);
 		boot_params_va->pcn_kmsg_master_window = rkinfo_phys_addr;
 		KMSG_INIT("boot_params virt %p phys %p\n",
 			boot_params_va, orig_boot_params);

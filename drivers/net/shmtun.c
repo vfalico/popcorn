@@ -1438,8 +1438,7 @@ static int __init shmtun_init(void)
 		memset(shmem_directory, 0x0, sizeof(shmtun_directory_t));
 
 		printk("Setting boot_params...\n");
-		boot_params_va = (struct boot_params *) 
-			(0xffffffff80000000ULL + orig_boot_params);
+		boot_params_va = __va(orig_boot_params);
 		printk("Boot params virtual address: 0x%p\n", boot_params_va);
 		boot_params_va->shmtun_phys_addr = dir_phys_addr;
 	} else {
