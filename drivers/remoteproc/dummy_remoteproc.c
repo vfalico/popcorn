@@ -17,6 +17,7 @@
 #include <linux/remoteproc.h>
 #include <linux/platform_device.h>
 #include <linux/dma-mapping.h>
+#include <linux/firmware.h>
 #include <linux/cpu.h>
 #include <linux/kernel.h>
 #include <linux/export.h>
@@ -33,10 +34,12 @@ MODULE_PARM_DESC(cmdline_override, "kernel boot paramters to pass to the second 
 static int dummy_rproc_start(struct rproc *rproc)
 {
 	unsigned long kernel_start_address = CONFIG_PHYSICAL_START;
-	int apicid, apicid_1;
+	const struct firmware *initrd;
+	void *initrd_dma;
+	int apicid, apicid_1, ret = -ENOMEM;
 	char *cmdline_str;
 	struct boot_params *bp;
-	dma_addr_t dma;
+	dma_addr_t dma_bp, dma_str, dma_initrd;
 	int cpu = 1;
 
 	dev_notice(&rproc->dev, "Powering up remote processor\n");
@@ -55,18 +58,58 @@ static int dummy_rproc_start(struct rproc *rproc)
 	dev_notice(&rproc->dev, "The CPU is not present in the current present_mask (OK to continue), apicid = %d, apicid_1 = %d\n", apicid, apicid_1);
 
 	apicid = per_cpu(x86_bios_cpu_apicid, cpu);
-	bp = dma_alloc_coherent(rproc->dev.parent, sizeof(*bp), &dma, GFP_KERNEL);
+
+	bp = dma_alloc_coherent(rproc->dev.parent, sizeof(*bp), &dma_bp, GFP_KERNEL);
 	if (!bp)
 		return -ENOMEM;
+
 	memcpy(bp, __va((void *)orig_boot_params), sizeof(*bp));
-	cmdline_str = dma_alloc_coherent(rproc->dev.parent, strlen(cmdline_override), &dma, GFP_KERNEL);
+
+	cmdline_str = dma_alloc_coherent(rproc->dev.parent, strlen(cmdline_override), &dma_str, GFP_KERNEL);
 	if (!cmdline_str)
-		return -ENOMEM;
+		goto free_bp;
+
 	strcpy(cmdline_str, cmdline_override);
 	bp->hdr.cmd_line_ptr = __pa(cmdline_str);
 
+	ret = request_firmware(&initrd, "initrd", &rproc->dev);
+
+	if (ret < 0) {
+		dev_err(&rproc->dev, "request_firmware failed: %d\n", ret);
+		goto free_str;
+	}
+
+	initrd_dma = dma_alloc_coherent(rproc->dev.parent, initrd->size,
+					&dma_initrd, GFP_KERNEL);
+
+	if (!initrd_dma) {
+		dev_err(&rproc->dev, "failed to allocate cma for fw size %zd\n",
+			initrd->size);
+		ret = -ENOMEM;
+		goto free_fw;
+	}
+
+	memcpy(initrd_dma, initrd->data, initrd->size);
+
+	bp->hdr.ramdisk_image = __pa(initrd_dma);
+	bp->hdr.ramdisk_size = initrd->size;
+	bp->hdr.ramdisk_magic = 0; //motherfuckers
+
+	release_firmware(initrd);
+
 	return mkbsp_boot_cpu(apicid, cpu, kernel_start_address, bp);
-//	return 0;
+
+free_fw:
+	release_firmware(initrd);
+
+free_str:
+	dma_free_coherent(rproc->dev.parent, strlen(cmdline_override),
+			  cmdline_str, dma_str);
+
+free_bp:
+	dma_free_coherent(rproc->dev.parent, sizeof(*bp), bp, dma_bp);
+
+	return ret;
 }
 
 static int dummy_rproc_stop(struct rproc *rproc)
