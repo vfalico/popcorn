@@ -24,33 +24,49 @@
 #include <linux/gfp.h>
 #include <linux/smp.h>
 
+extern unsigned long orig_boot_params;
+
 char *cmdline_override="";
 module_param(cmdline_override, charp, 0000);
 MODULE_PARM_DESC(cmdline_override, "kernel boot paramters to pass to the second cpu");
 
 static int dummy_rproc_start(struct rproc *rproc)
 {
+	unsigned long kernel_start_address = CONFIG_PHYSICAL_START;
 	int apicid, apicid_1;
+	char *cmdline_str;
+	struct boot_params *bp;
+	dma_addr_t dma;
 	int cpu = 1;
-	unsigned long kernel_start_address= 0x48000000;
+
 	dev_notice(&rproc->dev, "Powering up remote processor\n");
-
 	dev_notice(&rproc->dev, "boot params: %s\n", cmdline_override);
-
-	printk("multikernel boot: got to multikernel_boot syscall, cpu %d, apicid %d (%x), kernel start address 0x%lx\n",
-			cpu, apic->cpu_present_to_apicid(cpu), BAD_APICID,kernel_start_address);
+	dev_notice(&rproc->dev, "multikernel boot: got to multikernel_boot syscall, cpu %d, apicid %d (%x), kernel start address 0x%lx\n",
+		   cpu, apic->cpu_present_to_apicid(cpu), BAD_APICID,kernel_start_address);
 
 	apicid_1 = per_cpu(x86_bios_cpu_apicid, cpu);
-
 	apicid = apic->cpu_present_to_apicid(cpu);
-	if (apicid == BAD_APICID)
-		printk(KERN_ERR"The CPU is not present in the current present_mask (OK to continue), apicid = %d, apicid_1 = %d\n", apicid, apicid_1);
-	else {
+
+	if (apicid != BAD_APICID) {
 		printk(KERN_ERR"The CPU is currently running with this kernel instance. First put it offline and then continue. apicid = %d, apicid_1 = %d\n", apicid, apicid_1);
 		return -1;
 	}
-	apicid = per_cpu(x86_bios_cpu_apicid, cpu);  
-	return mkbsp_boot_cpu(apicid, cpu, kernel_start_address, cmdline_override);
+
+	dev_notice(&rproc->dev, "The CPU is not present in the current present_mask (OK to continue), apicid = %d, apicid_1 = %d\n", apicid, apicid_1);
+
+	apicid = per_cpu(x86_bios_cpu_apicid, cpu);
+	bp = dma_alloc_coherent(rproc->dev.parent, sizeof(*bp), &dma, GFP_KERNEL);
+	if (!bp)
+		return -ENOMEM;
+	memcpy(bp, __va((void *)orig_boot_params), sizeof(*bp));
+	cmdline_str = dma_alloc_coherent(rproc->dev.parent, strlen(cmdline_override), &dma, GFP_KERNEL);
+	if (!cmdline_str)
+		return -ENOMEM;
+	strcpy(cmdline_str, cmdline_override);
+	bp->hdr.cmd_line_ptr = __pa(cmdline_str);
+
+	return mkbsp_boot_cpu(apicid, cpu, kernel_start_address, bp);
+//	return 0;
 }
 
 static int dummy_rproc_stop(struct rproc *rproc)

@@ -13,6 +13,8 @@
 #include <linux/remoteproc.h>
 #include <linux/virtio_ids.h>
 
+#define VMLINUX_FIRMWARE_SIZE		0x6f00000
+
 struct dummy_rproc_resourcetable {
 	struct resource_table		main_hdr;
 	u32				offset[2];
@@ -43,8 +45,8 @@ struct dummy_rproc_resourcetable dummy_remoteproc_resourcetable
 	},
 	.rsc_mem = {
 		(u32) FW_RSC_ADDR_ANY,	/* we don't care about the dev address */
-		0x48000000,		/* here be physicall address */
-		0x51f0000,		/* size please */
+		CONFIG_PHYSICAL_START,	/* here be physicall address */
+		VMLINUX_FIRMWARE_SIZE,		/* size please */
 		0,			/* TODO flags */
 		0,			/* reserved - 0 */
 		"dummy-rproc-mem",
