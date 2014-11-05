@@ -122,7 +122,6 @@ rproc_elf64_load_segments(struct rproc *rproc, const struct firmware *fw)
 	/* go through the available ELF segments */
 	for (i = 0; i < ehdr->e_phnum; i++, phdr++) {
 		unsigned long da = phdr->p_paddr;
-		if (da < 0x48000000) da += 0x48000000 - 0x1000000;
 		unsigned long memsz = phdr->p_memsz;
 		unsigned long filesz = phdr->p_filesz;
 		unsigned long offset = phdr->p_offset;
