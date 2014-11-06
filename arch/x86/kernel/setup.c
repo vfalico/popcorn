@@ -150,6 +150,8 @@ struct boot_params __initdata boot_params;
 struct boot_params boot_params;
 #endif
 
+EXPORT_SYMBOL(boot_params);
+
 /*
  * Machine setup..
  */

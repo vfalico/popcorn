@@ -24,8 +24,9 @@
 #include <linux/percpu.h>
 #include <linux/gfp.h>
 #include <linux/smp.h>
+#include <asm/bootparam.h>
 
-extern unsigned long orig_boot_params;
+extern struct boot_params boot_params;
 
 char *cmdline_override="";
 module_param(cmdline_override, charp, S_IRUGO | S_IWUSR);
@@ -63,7 +64,12 @@ static int dummy_rproc_start(struct rproc *rproc)
 		return -ENOMEM;
 	}
 
-	memcpy(bp, __va((void *)orig_boot_params), sizeof(*bp));
+	memcpy(bp, &boot_params, sizeof(*bp));
+
+	if (memcmp(&bp->hdr.header, "HdrS", 4) != 0) {
+		dev_err(&rproc->dev, "struct boot_params is broken.\n");
+		goto free_bp;
+	}
 
 	cmdline_str = dma_alloc_coherent(rproc->dev.parent, strlen(cmdline_override),
 					 &dma_str, GFP_KERNEL);
