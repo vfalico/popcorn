@@ -524,7 +524,6 @@ static int __init pcn_kmsg_init(void)
 	int rc,i;
 	unsigned long win_phys_addr, rkinfo_phys_addr;
 	struct pcn_kmsg_window *win_virt_addr;
-	struct boot_params *boot_params_va;
 
 	KMSG_INIT("entered\n");
 
@@ -607,10 +606,7 @@ static int __init pcn_kmsg_init(void)
 		   of the kernels where the master kernel's messaging window 
 		   is. */
 		KMSG_INIT("Setting boot_params...\n");
-		boot_params_va = __va(orig_boot_params);
-		boot_params_va->pcn_kmsg_master_window = rkinfo_phys_addr;
-		KMSG_INIT("boot_params virt %p phys %p\n",
-			boot_params_va, orig_boot_params);
+		boot_params.pcn_kmsg_master_window = rkinfo_phys_addr;
 	}
 	else {
 		KMSG_INIT("Primary kernel rkinfo phys addr: 0x%lx\n", 
