@@ -515,8 +515,7 @@ wakeup_secondary_cpu_via_nmi(int logical_apicid, unsigned long start_eip)
 	return (send_status | accept_status);
 }
 
-static int __cpuinit
-wakeup_secondary_cpu_via_init(int phys_apicid, unsigned long start_eip)
+int __cpuinit wakeup_secondary_cpu_via_init(int phys_apicid, unsigned long start_eip)
 {
 	unsigned long send_status, accept_status = 0;
 	int maxlvt, num_starts, j;
@@ -629,6 +628,7 @@ wakeup_secondary_cpu_via_init(int phys_apicid, unsigned long start_eip)
 
 	return (send_status | accept_status);
 }
+EXPORT_SYMBOL(wakeup_secondary_cpu_via_init);
 
 struct create_idle {
 	struct work_struct work;

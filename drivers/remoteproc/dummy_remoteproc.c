@@ -24,6 +24,7 @@
 #include <linux/percpu.h>
 #include <linux/gfp.h>
 #include <linux/smp.h>
+#include <asm/delay.h>
 
 extern unsigned long orig_boot_params;
 
@@ -37,12 +38,11 @@ MODULE_PARM_DESC(boot_cpu, "cpu number to boot the firmware on");
 
 static int dummy_rproc_start(struct rproc *rproc)
 {
-	void *kernel_start_address = (void *)CONFIG_PHYSICAL_START, *initrd_dma;
 	dma_addr_t dma_bp, dma_str, dma_initrd;
+	void *cmdline_str, *initrd_dma;
 	const struct firmware *initrd;
 	int apicid, ret = -ENOMEM;
 	struct boot_params *bp;
-	char *cmdline_str;
 
 	dev_notice(&rproc->dev, "Powering up processor %d, params \"%s\"\n",
 		   boot_cpu, cmdline_override);
@@ -100,7 +100,40 @@ static int dummy_rproc_start(struct rproc *rproc)
 
 	release_firmware(initrd);
 
-	return mkbsp_boot_cpu(apicid, boot_cpu, kernel_start_address, bp);
+	/**
+	 * Ok, we have all the needed memory in place, the trampoline
+	 * should have been memblock()ed in the early boot - now the only
+	 * thing left is to change trampoline's values to our and start it.
+	 */
+
+	*(u32 *)TRAMPOLINE_SYM_BSP(&kernel_phys_addr) = CONFIG_PHYSICAL_START;
+	*(u32 *)TRAMPOLINE_SYM_BSP(&boot_params_phys_addr) = dma_bp;
+
+	/* boot the second cpu and give it the trampoline address */
+	ret = wakeup_secondary_cpu_via_init(apicid, trampoline_bsp_address());
+
+	if (ret) {
+		dev_err(&rproc->dev, "Couldn't wake up CPU%d\n", boot_cpu);
+		goto free_str;
+	}
+
+	/* we should give it some time to wake up */
+	udelay(100);
+
+	if (*(u32 *)TRAMPOLINE_SYM_BSP(trampoline_status_bsp) != 0xA5A5A5A5) {
+		/* trampoline code not run */
+		dev_err(&rproc->dev, "CPU%d: Trampoline not starting.\n",
+			boot_cpu);
+		ret = -EFAULT;
+		goto free_str;
+	}
+
+	dev_info(&rproc->dev, "CPU%d: Trampoline has started, good luck.\n",
+		 boot_cpu);
+
+	*(u32 *)TRAMPOLINE_SYM_BSP(trampoline_status_bsp) = 0;
+
+	return 0;
 
 free_fw:
 	release_firmware(initrd);
