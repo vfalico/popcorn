@@ -28,46 +28,49 @@
 extern unsigned long orig_boot_params;
 
 char *cmdline_override="";
-module_param(cmdline_override, charp, 0000);
+module_param(cmdline_override, charp, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(cmdline_override, "kernel boot paramters to pass to the second cpu");
+
+int boot_cpu = 1;
+module_param(boot_cpu, int, S_IRUGO | S_IWUSR);
+MODULE_PARM_DESC(boot_cpu, "cpu number to boot the firmware on");
 
 static int dummy_rproc_start(struct rproc *rproc)
 {
-	unsigned long kernel_start_address = CONFIG_PHYSICAL_START;
-	const struct firmware *initrd;
-	void *initrd_dma;
-	int apicid, apicid_1, ret = -ENOMEM;
-	char *cmdline_str;
-	struct boot_params *bp;
+	void *kernel_start_address = (void *)CONFIG_PHYSICAL_START, *initrd_dma;
 	dma_addr_t dma_bp, dma_str, dma_initrd;
-	int cpu = 1;
+	const struct firmware *initrd;
+	int apicid, ret = -ENOMEM;
+	struct boot_params *bp;
+	char *cmdline_str;
 
-	dev_notice(&rproc->dev, "Powering up remote processor\n");
-	dev_notice(&rproc->dev, "boot params: %s\n", cmdline_override);
-	dev_notice(&rproc->dev, "multikernel boot: got to multikernel_boot syscall, cpu %d, apicid %d (%x), kernel start address 0x%lx\n",
-		   cpu, apic->cpu_present_to_apicid(cpu), BAD_APICID,kernel_start_address);
+	dev_notice(&rproc->dev, "Powering up processor %d, params \"%s\"\n",
+		   boot_cpu, cmdline_override);
 
-	apicid_1 = per_cpu(x86_bios_cpu_apicid, cpu);
-	apicid = apic->cpu_present_to_apicid(cpu);
+	apicid = apic->cpu_present_to_apicid(boot_cpu);
 
 	if (apicid != BAD_APICID) {
-		printk(KERN_ERR"The CPU is currently running with this kernel instance. First put it offline and then continue. apicid = %d, apicid_1 = %d\n", apicid, apicid_1);
-		return -1;
+		dev_err(&rproc->dev, "The CPU%d is used by this kernel, apicid = %d\n",
+			boot_cpu, apicid);
+		return -ENOEXEC;
 	}
 
-	dev_notice(&rproc->dev, "The CPU is not present in the current present_mask (OK to continue), apicid = %d, apicid_1 = %d\n", apicid, apicid_1);
-
-	apicid = per_cpu(x86_bios_cpu_apicid, cpu);
+	apicid = per_cpu(x86_bios_cpu_apicid, boot_cpu);
 
 	bp = dma_alloc_coherent(rproc->dev.parent, sizeof(*bp), &dma_bp, GFP_KERNEL);
-	if (!bp)
+	if (!bp) {
+		dev_err(&rproc->dev, "can't allocate cma for boot_params\n");
 		return -ENOMEM;
+	}
 
 	memcpy(bp, __va((void *)orig_boot_params), sizeof(*bp));
 
-	cmdline_str = dma_alloc_coherent(rproc->dev.parent, strlen(cmdline_override), &dma_str, GFP_KERNEL);
-	if (!cmdline_str)
+	cmdline_str = dma_alloc_coherent(rproc->dev.parent, strlen(cmdline_override),
+					 &dma_str, GFP_KERNEL);
+	if (!cmdline_str) {
+		dev_err(&rproc->dev, "can't allocate cma for cmdline\n");
 		goto free_bp;
+	}
 
 	strcpy(cmdline_str, cmdline_override);
 	bp->hdr.cmd_line_ptr = __pa(cmdline_str);
@@ -93,11 +96,11 @@ static int dummy_rproc_start(struct rproc *rproc)
 
 	bp->hdr.ramdisk_image = __pa(initrd_dma);
 	bp->hdr.ramdisk_size = initrd->size;
-	bp->hdr.ramdisk_magic = 0; //motherfuckers
+	bp->hdr.ramdisk_magic = 0;
 
 	release_firmware(initrd);
 
-	return mkbsp_boot_cpu(apicid, cpu, kernel_start_address, bp);
+	return mkbsp_boot_cpu(apicid, boot_cpu, kernel_start_address, bp);
 
 free_fw:
 	release_firmware(initrd);
