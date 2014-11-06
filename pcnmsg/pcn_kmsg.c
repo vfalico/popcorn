@@ -616,6 +616,11 @@ static int __init pcn_kmsg_init(void)
 		KMSG_INIT("Primary kernel rkinfo phys addr: 0x%lx\n", 
 			  (unsigned long) boot_params.pcn_kmsg_master_window);
 		rkinfo_phys_addr = boot_params.pcn_kmsg_master_window;
+
+		if (!rkinfo_phys_addr) {
+			KMSG_ERR("No rkinfo phys addr passed, bailing out\n");
+			return -1;
+		}
 		
 		rkinfo = ioremap_cache(rkinfo_phys_addr, ROUND_PAGE_SIZE(sizeof(struct pcn_kmsg_rkinfo)));
 		if (!rkinfo) {

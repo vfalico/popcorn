@@ -1449,6 +1449,12 @@ static int __init shmtun_init(void)
 		       (unsigned long) boot_params.shmtun_phys_addr);
 
 		dir_phys_addr = boot_params.shmtun_phys_addr;
+
+		if (!dir_phys_addr) {
+			printk(KERN_ERR "shmtun: no address passed, bailing out.\n");
+			return -1;
+		}
+
 		shmem_directory = ioremap_cache(dir_phys_addr, 
 						sizeof(shmtun_directory_t));
 		if (!shmem_directory) {
