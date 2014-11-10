@@ -24,17 +24,58 @@
 #include <linux/percpu.h>
 #include <linux/gfp.h>
 #include <linux/smp.h>
+#include <linux/pci.h>
 #include <asm/bootparam.h>
+#include <asm/setup.h>
+#include <linux/interrupt.h>
+#include <linux/irq.h>
 
 extern struct boot_params boot_params;
 
-char *cmdline_override="";
+char cmdline_override[COMMAND_LINE_SIZE];
 module_param(cmdline_override, charp, S_IRUGO | S_IWUSR);
-MODULE_PARM_DESC(cmdline_override, "kernel boot paramters to pass to the second cpu");
+MODULE_PARM_DESC(cmdline_override, "kernel boot paramters to pass to the second cpu, leave blank to auto-generate");
 
 int boot_cpu = 1;
 module_param(boot_cpu, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(boot_cpu, "cpu number to boot the firmware on");
+
+char *pci_devices_handover;
+module_param(pci_devices_handover, charp, S_IRUGO | S_IWUSR);
+MODULE_PARM_DESC(pci_devices_handover, "list of pci devices to disconnect/reconnect to the kernel, in the form of 0xVENDOR_ID_HEX:0xDEVICE_ID_HEX,...");
+
+static void dummy_handle_pci_handover(struct rproc *rproc, char *cmdline)
+{
+	char pdev_desc[14], pdev_blacklist[16*10] = "pci_dev_flags=";
+	struct pci_dev *pdev = NULL, *tmp;
+	int c = 0;
+
+	if (!*pci_devices_handover)
+		return;
+	pdev = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, NULL);
+
+	while (pdev) {
+		sprintf(pdev_desc, "0x%04x:0x%04x", pdev->vendor, pdev->device);
+		dev_info(&rproc->dev, "found %x:%x pci (searching for %s)\n", pdev->vendor, pdev->device, pdev_desc);
+		if (strstr(pci_devices_handover, pdev_desc)) {
+			dev_info(&rproc->dev, "Found, disabling...\n");
+			tmp = pdev;
+			pdev = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, pdev);
+			pci_remove_bus_device(tmp);
+			continue;
+		} else {
+			dev_info(&rproc->dev, "not found, blacklisting in the new kernel\n");
+			sprintf(pdev_blacklist + strlen(pdev_blacklist), "%c%s:b",
+				c ? ',' : pdev_desc[0], pdev_desc + (c ? 0 : 1));
+			c++;
+		}
+
+		pdev = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, pdev);
+	}
+
+	if (c)
+		sprintf(cmdline + strlen(cmdline), " %s", pdev_blacklist);
+}
 
 static int dummy_rproc_start(struct rproc *rproc)
 {
@@ -69,6 +110,12 @@ static int dummy_rproc_start(struct rproc *rproc)
 	if (memcmp(&bp->hdr.header, "HdrS", 4) != 0) {
 		dev_err(&rproc->dev, "struct boot_params is broken.\n");
 		goto free_bp;
+	}
+
+	if (!*cmdline_override) {
+		sprintf(cmdline_override, "console=ttyS1,115200n8 early_printk=ttyS1,115200n8 acpi_irq_nobalance no_ipi_broadcast=1 lapic_timer=1000000 mklinux debug memmap=640K@0 cma=0@0 present_mask=%d memmap=0x2e90000$640K memmap=0xB0340000$0x4e800000 memmap=4G$0xfebf0000 memmap=500M@0x2f400000",
+			1 << (boot_cpu - 1));
+		dummy_handle_pci_handover(rproc, cmdline_override);
 	}
 
 	cmdline_str = dma_alloc_coherent(rproc->dev.parent, strlen(cmdline_override),
