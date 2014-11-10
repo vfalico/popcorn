@@ -10,6 +10,8 @@
  * for more details.
  */
 
+#include <linux/kernel.h>
+#include <linux/module.h>
 #include <linux/remoteproc.h>
 #include <linux/virtio_ids.h>
 
@@ -80,11 +82,33 @@ struct dummy_rproc_resourcetable dummy_remoteproc_resourcetable
 	},
 };
 
-struct rproc *lproc;
+struct dummy_rproc_resourcetable *lproc = NULL;
+u64 lproc_pa = 0;
+
+static int __init dummy_lproc_init(void)
+{
+	if (!lproc_pa)
+		return 0;
+
+	lproc = ioremap_cache(lproc_pa, sizeof(struct rproc));
+	if (lproc)
+		printk(KERN_INFO "lproc 0x%p version %d vrings %d vring1.notifyid %d\n", lproc, lproc->main_hdr.ver, lproc->main_hdr.num, lproc->rsc_ring1.notifyid);
+	else {
+		printk(KERN_ERR "ioremap failed for pa 0x%p\n", lproc_pa);
+		return -EFAULT;
+	}
+
+	return 0;
+
+}
+late_initcall(dummy_lproc_init);
 
 static int __init dummy_lproc_parse_addr(char *p)
 {
-	lproc = memparse(p, &p);
-	printk(KERN_INFO "lproc %p, name %s\n", lproc, lproc ? lproc->name : "(null)");
+	lproc_pa = memparse(p, &p);
+	if (!lproc_pa)
+		printk(KERN_ERR "lproc: couldn't parse address for rproc\n");
+
+	return 0;
 }
-early_param("rproc", dummy_lproc_parse_addr);
+__setup("rproc_rsc_tbl=", dummy_lproc_parse_addr);
