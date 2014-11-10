@@ -18,10 +18,10 @@ config DUMMY_REMOTEPROC
 	  Say y here to enable support for a dummy remote processor driver
 	  via the remote processor framework.
 
-config DUMMY_RESTBL
-	bool "Dummy remoteproc's driver resource table"
+config DUMMY_LOCALPROC
+	bool "Dummy remoteproc's driver local resources and functionality"
+	depends on DUMMY_REMOTEPROC
 	help
-	  Say y here to compile the dummy_remoteproc resource table into
-	  vmlinux.
+	  Say y here to be able to boot the vmlinux via dummy_remoteproc.
 
 endmenu

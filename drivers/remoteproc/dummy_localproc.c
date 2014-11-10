@@ -79,3 +79,12 @@ struct dummy_rproc_resourcetable dummy_remoteproc_resourcetable
 		0,			/* reserved - 0 */
 	},
 };
+
+struct rproc *lproc;
+
+static int __init dummy_lproc_parse_addr(char *p)
+{
+	lproc = memparse(p, &p);
+	printk(KERN_INFO "lproc %p, name %s\n", lproc, lproc ? lproc->name : "(null)");
+}
+early_param("rproc", dummy_lproc_parse_addr);
