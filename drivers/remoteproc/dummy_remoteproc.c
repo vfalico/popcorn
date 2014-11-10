@@ -61,6 +61,7 @@ static void dummy_handle_pci_handover(struct rproc *rproc, char *cmdline)
 			dev_info(&rproc->dev, "Found, disabling...\n");
 			tmp = pdev;
 			pdev = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, pdev);
+			disable_irq(tmp->irq);
 			pci_remove_bus_device(tmp);
 			continue;
 		} else {
@@ -113,7 +114,7 @@ static int dummy_rproc_start(struct rproc *rproc)
 	}
 
 	if (!*cmdline_override) {
-		sprintf(cmdline_override, "console=ttyS1,115200n8 early_printk=ttyS1,115200n8 acpi_irq_nobalance no_ipi_broadcast=1 lapic_timer=1000000 mklinux debug memmap=640K@0 cma=0@0 present_mask=%d memmap=0x2e90000$640K memmap=0xB0340000$0x4e800000 memmap=4G$0xfebf0000 memmap=500M@0x2f400000",
+		sprintf(cmdline_override, "acpi_irq_nobalance no_ipi_broadcast=1 lapic_timer=1000000 mklinux debug memmap=640K@0 cma=0@0 present_mask=%d memmap=0x2e90000$640K memmap=0xB0340000$0x4e800000 memmap=4G$0xfebf0000 memmap=500M@0x2f400000",
 			1 << (boot_cpu - 1));
 		dummy_handle_pci_handover(rproc, cmdline_override);
 	}
