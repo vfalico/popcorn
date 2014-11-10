@@ -123,9 +123,6 @@ void __init dma_contiguous_reserve(phys_addr_t limit)
 	unsigned long selected_limit = limit;
 	bool fixed = false;
 
-	if (mklinux_boot)
-		return;
-
 	pr_debug("%s(limit %08lx)\n", __func__, (unsigned long)limit);
 
 	total_pages = cma_early_get_total_pages();
