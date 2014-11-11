@@ -46,8 +46,8 @@ struct dummy_rproc_resourcetable dummy_remoteproc_resourcetable
 		.type =		RSC_CARVEOUT,		/* mem resource */
 	},
 	.rsc_mem = {
-		.da =		(u32) FW_RSC_ADDR_ANY,	/* we don't care about the dev address */
-		.pa =		CONFIG_PHYSICAL_START,	/* here be physicall address */
+		.da =		CONFIG_PHYSICAL_START,	/* we don't care about the dev address */
+		.pa =		0,			/* here be physicall address */
 		.len =		VMLINUX_FIRMWARE_SIZE,	/* size please */
 		.flags =	0,			/* TODO flags */
 		.reserved =	0,			/* reserved - 0 */
