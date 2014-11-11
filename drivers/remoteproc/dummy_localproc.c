@@ -82,33 +82,14 @@ struct dummy_rproc_resourcetable dummy_remoteproc_resourcetable
 	},
 };
 
-struct dummy_rproc_resourcetable *lproc = NULL;
-u64 lproc_pa = 0;
+struct dummy_rproc_resourcetable *lproc = &dummy_remoteproc_resourcetable;
 
 static int __init dummy_lproc_init(void)
 {
-	if (!lproc_pa)
-		return 0;
-
-	lproc = ioremap_cache(lproc_pa, sizeof(struct rproc));
-	if (lproc)
-		printk(KERN_INFO "lproc 0x%p version %d vrings %d vring1.notifyid %d\n", lproc, lproc->main_hdr.ver, lproc->main_hdr.num, lproc->rsc_ring1.notifyid);
-	else {
-		printk(KERN_ERR "ioremap failed for pa 0x%p\n", lproc_pa);
-		return -EFAULT;
-	}
+	printk(KERN_INFO "%s: vring0 pa 0x%p vring1 pa 0x%p\n",
+	       __func__, lproc->rsc_ring0.da, lproc->rsc_ring1.da);
 
 	return 0;
 
 }
 late_initcall(dummy_lproc_init);
-
-static int __init dummy_lproc_parse_addr(char *p)
-{
-	lproc_pa = memparse(p, &p);
-	if (!lproc_pa)
-		printk(KERN_ERR "lproc: couldn't parse address for rproc\n");
-
-	return 0;
-}
-__setup("rproc_rsc_tbl=", dummy_lproc_parse_addr);
