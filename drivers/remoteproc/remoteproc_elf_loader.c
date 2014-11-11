@@ -477,8 +477,7 @@ rproc_elf64_find_loaded_rsc_table(struct rproc *rproc,
 	if (!shdr)
 		return NULL;
 
-//	return rproc_da_to_va(rproc, shdr->sh_addr, shdr->sh_size);
-	return shdr->sh_addr;
+	return rproc_da_to_va(rproc, shdr->sh_addr, shdr->sh_size);
 }
 
 /**

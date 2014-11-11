@@ -24,8 +24,6 @@
 
 #define pr_fmt(fmt)    "%s: " fmt, __func__
 
-#define DEBUG
-
 #include <linux/kernel.h>
 #include <linux/module.h>
 #include <linux/device.h>
@@ -169,40 +167,24 @@ static void rproc_disable_iommu(struct rproc *rproc)
 void *rproc_da_to_va(struct rproc *rproc, unsigned long da, int len)
 {
 	struct rproc_mem_entry *carveout;
-	unsigned long real_addr, offset;
 	void *ptr = NULL;
 
-
 	list_for_each_entry(carveout, &rproc->carveouts, node) {
-		/* if the firmware doesn't care about the device address - we
-		 * should only use its physical address */
-		if (carveout->da == (u32) FW_RSC_ADDR_ANY)
-			real_addr = carveout->dma;
-		else
-			real_addr = carveout->da;
-
-		offset = da - real_addr;
-
-		printk(KERN_ERR"search for da 0x%lx len 0x%lx, real_addr 0x%lx carveout->da 0x%lx carveout->dma %p carveout->va %p offset 0x%lx\n", da, len, real_addr, carveout->da, carveout->dma, carveout->va, offset);
+		int offset = da - carveout->da;
 
 		/* try next carveout if da is too small */
-		if (da < real_addr) {
-			printk(KERN_ERR "da (0x%lx) of the segment is below the minimal address 0x%lx\n", da, real_addr);
+		if (offset < 0)
 			continue;
-		}
 
 		/* try next carveout if da is too large */
-		if (offset + len > carveout->len) {
-			printk(KERN_ERR "offset (0x%lx) + len (0x%lx) (0x%lx) > carveout->len (0x%lx)\n", offset, len, carveout->len);
+		if (offset + len > carveout->len)
 			continue;
-		}
 
 		ptr = carveout->va + offset;
 
 		break;
 	}
-	if (!ptr)
-		dump_stack();
+
 	return ptr;
 }
 EXPORT_SYMBOL(rproc_da_to_va);
@@ -229,13 +211,11 @@ int rproc_alloc_vring(struct rproc_vdev *rvdev, int i)
 	 * Allocate non-cacheable memory for the vring. In the future
 	 * this call will also configure the IOMMU for us
 	 */
-	dev_info(dev->parent, "allocating size %lu...\n", size);
 	va = dma_alloc_coherent(dev->parent, size, &dma, GFP_KERNEL);
 	if (!va) {
 		dev_err(dev->parent, "dma_alloc_coherent failed\n");
 		return -EINVAL;
 	}
-	dev_info(dev, "allocated, got %p\n", va);
 
 	/*
 	 * Assign an rproc-wide unique index for this vring
@@ -249,7 +229,7 @@ int rproc_alloc_vring(struct rproc_vdev *rvdev, int i)
 		return ret;
 	}
 
-	dev_info(dev, "vring%d: va %p dma %llx size %x idr %d\n", i, va,
+	dev_dbg(dev, "vring%d: va %p dma %llx size %x idr %d\n", i, va,
 				(unsigned long long)dma, size, notifyid);
 
 	rvring->va = va;
@@ -844,7 +824,6 @@ static int rproc_fw_boot(struct rproc *rproc, const struct firmware *fw)
 	/* look for the resource table */
 	table = rproc_find_rsc_table(rproc, fw, &tablesz);
 	if (!table) {
-		dev_err(dev, "cannot find table\n");
 		goto clean_up;
 	}
 
@@ -877,7 +856,6 @@ static int rproc_fw_boot(struct rproc *rproc, const struct firmware *fw)
 	 */
 	loaded_table = rproc_find_loaded_rsc_table(rproc, fw);
 	if (!loaded_table) {
-		dev_err(dev, "Failed to find loaded resource table\n");
 		ret = -EINVAL;
 		goto clean_up;
 	}
