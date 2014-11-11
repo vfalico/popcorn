@@ -1,0 +1,2 @@
+Currently still doesn't work, cause the .sh_addr of the
+.resource_table section is way way way off the pa start.
