@@ -34,51 +34,51 @@ struct dummy_rproc_resourcetable dummy_remoteproc_resourcetable
 	__attribute__((section(".resource_table"), aligned(PAGE_SIZE))) =
 {
 	.main_hdr = {
-		1,			/* version */
-		2,			/* we have 2 entries - mem and rpmsg */
-		{ 0, 0 },		/* reserved - must be 0 */
+		.ver =		1,			/* version */
+		.num =		2,			/* we have 2 entries - mem and rpmsg */
+		.reserved =	{ 0, 0 },		/* reserved - must be 0 */
 	},
-	.offset = {			/* offsets to our resource entries */
+	.offset = {					/* offsets to our resource entries */
 		offsetof(struct dummy_rproc_resourcetable, rsc_hdr_mem),
 		offsetof(struct dummy_rproc_resourcetable, rsc_hdr_vdev),
 	},
 	.rsc_hdr_mem = {
-		RSC_CARVEOUT,		/* mem resource */
+		.type =		RSC_CARVEOUT,		/* mem resource */
 	},
 	.rsc_mem = {
-		(u32) FW_RSC_ADDR_ANY,	/* we don't care about the dev address */
-		CONFIG_PHYSICAL_START,	/* here be physicall address */
-		VMLINUX_FIRMWARE_SIZE,		/* size please */
-		0,			/* TODO flags */
-		0,			/* reserved - 0 */
-		"dummy-rproc-mem",
+		.da =		(u32) FW_RSC_ADDR_ANY,	/* we don't care about the dev address */
+		.pa =		CONFIG_PHYSICAL_START,	/* here be physicall address */
+		.len =		VMLINUX_FIRMWARE_SIZE,	/* size please */
+		.flags =	0,			/* TODO flags */
+		.reserved =	0,			/* reserved - 0 */
+		.name =		"dummy-rproc-mem",
 	},
 	.rsc_hdr_vdev = {
-		RSC_VDEV,		/* vdev resource */
+		.type =		RSC_VDEV,		/* vdev resource */
 	},
 	.rsc_vdev = {
-		VIRTIO_ID_RPMSG,	/* found in virtio_ids.h */
-		0xC001DEA1,		/* magic number for IPC */
-		0,			/* features - none (??) */
-		0,			/* negotiated features - blank */
-		0,			/* config len - none (??) */
-		0,			/* status - updated by bsp */
-		2,			/* we have 2 rings */
-		{ 0, 0},		/* reserved */
+		.id =		VIRTIO_ID_RPMSG,	/* found in virtio_ids.h */
+		.notifyid =	0,			/* magic number for IPC */
+		.dfeatures =	0,			/* features - none (??) */
+		.gfeatures =	0,			/* negotiated features - blank */
+		.config_len =	0,			/* config len - none (??) */
+		.status =	0,			/* status - updated by bsp */
+		.num_of_vrings=	2,			/* we have 2 rings */
+		.reserved =	{ 0, 0},		/* reserved */
 	},
 	.rsc_ring0 = {
-		0,			/* we don't (??) care about the dev addr */
-		PAGE_SIZE,		/* alignment */
-		512,			/* number of buffers */
-		0xC001DEA2,		/* magic number for IPC */
-		0,			/* reserved - 0 */
+		.da =		0,			/* we don't (??) care about the da */
+		.align =	PAGE_SIZE,		/* alignment */
+		.num =		512,			/* number of buffers */
+		.notifyid =	0,			/* magic number for IPC */
+		.reserved =	0,			/* reserved - 0 */
 	},
 	.rsc_ring1 = {
-		0,			/* we don't (??) care about the dev addr */
-		PAGE_SIZE,		/* alignment */
-		512,			/* number of buffers */
-		0xC001DEA3,		/* magic number for IPC */
-		0,			/* reserved - 0 */
+		.da =		0,			/* we don't (??) care about the da */
+		.align =	PAGE_SIZE,		/* alignment */
+		.num =		512,			/* number of buffers */
+		.notifyid =	0,			/* magic number for IPC */
+		.reserved =	0,			/* reserved - 0 */
 	},
 };
 
