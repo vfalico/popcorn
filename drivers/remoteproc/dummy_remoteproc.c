@@ -40,7 +40,7 @@ int boot_cpu = 1;
 module_param(boot_cpu, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(boot_cpu, "cpu number to boot the firmware on");
 
-char *pci_devices_handover;
+char *pci_devices_handover = "";
 module_param(pci_devices_handover, charp, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(pci_devices_handover, "list of pci devices to disconnect/reconnect to the kernel, in the form of 0xVENDOR_ID_HEX:0xDEVICE_ID_HEX,...");
 
@@ -50,8 +50,6 @@ static void dummy_handle_pci_handover(struct rproc *rproc, char *cmdline)
 	struct pci_dev *pdev = NULL, *tmp;
 	int c = 0;
 
-	if (!*pci_devices_handover)
-		return;
 	pdev = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, NULL);
 
 	while (pdev) {
@@ -114,8 +112,8 @@ static int dummy_rproc_start(struct rproc *rproc)
 	}
 
 	if (!*cmdline_override) {
-		sprintf(cmdline_override, "rproc_rsc_tbl=0x%p console=ttyS1,115200n8 earlyprintk=ttyS1,115200n8 memblock=debug acpi_irq_nobalance no_ipi_broadcast=1 lapic_timer=1000000 mklinux debug memmap=640K@0 cma=0@0 present_mask=%d memmap=0x2e90000$640K memmap=0xB0340000$0x4e800000 memmap=4G$0xfebf0000 memmap=500M@0x2f400000",
-			__pa(rproc->table_ptr), 1 << (boot_cpu - 1));
+		sprintf(cmdline_override, "console=ttyS1,115200n8 earlyprintk=ttyS1,115200n8 memblock=debug acpi_irq_nobalance no_ipi_broadcast=1 lapic_timer=1000000 mklinux debug memmap=640K@0 cma=0@0 present_mask=%d memmap=0x2e90000$640K memmap=0xB0340000$0x4e800000 memmap=4G$0xfebf0000 memmap=500M@0x2f400000",
+			1 << (boot_cpu - 1));
 		dummy_handle_pci_handover(rproc, cmdline_override);
 	}
 
