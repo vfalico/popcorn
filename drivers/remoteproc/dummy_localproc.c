@@ -86,10 +86,17 @@ struct dummy_rproc_resourcetable *lproc = &dummy_remoteproc_resourcetable;
 
 static int __init dummy_lproc_init(void)
 {
-	printk(KERN_INFO "%s: vring0 pa 0x%p vring1 pa 0x%p\n",
+
+	if (!lproc->rsc_ring0.da) {
+		printk(KERN_INFO "%s: we're the BSP\n", __func__);
+
+		return 0;
+	}
+
+	printk(KERN_INFO "%s: We're the AP, vring0 pa 0x%p vring1 pa 0x%p\n",
 	       __func__, lproc->rsc_ring0.da, lproc->rsc_ring1.da);
 
 	return 0;
 
 }
-late_initcall(dummy_lproc_init);
+early_initcall(dummy_lproc_init);
