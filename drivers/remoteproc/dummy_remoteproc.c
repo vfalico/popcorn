@@ -80,7 +80,7 @@ static void dummy_handle_pci_handover(struct rproc *rproc, char *cmdline)
 
 static int dummy_rproc_start(struct rproc *rproc)
 {
-	void *kernel_start_address = (void *)CONFIG_PHYSICAL_START, *initrd_dma;
+	void *kernel_start_address = rproc->bootaddr, *initrd_dma;
 	dma_addr_t dma_bp, dma_str, dma_initrd;
 	const struct firmware *initrd;
 	int apicid, ret = -ENOMEM;
