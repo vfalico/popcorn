@@ -56,7 +56,7 @@ static void dummy_handle_pci_handover(struct rproc *rproc, char *cmdline)
 
 	while (pdev) {
 		sprintf(pdev_desc, "0x%04x:0x%04x", pdev->vendor, pdev->device);
-		dev_info(&rproc->dev, "found %x:%x pci (searching for %s)\n", pdev->vendor, pdev->device, pdev_desc);
+		dev_dbg(&rproc->dev, "found %x:%x pci (searching for %s)\n", pdev->vendor, pdev->device, pdev_desc);
 		if (strstr(pci_devices_handover, pdev_desc)) {
 			dev_info(&rproc->dev, "Found, disabling...\n");
 			tmp = pdev;
@@ -65,7 +65,7 @@ static void dummy_handle_pci_handover(struct rproc *rproc, char *cmdline)
 			pci_remove_bus_device(tmp);
 			continue;
 		} else {
-			dev_info(&rproc->dev, "not found, blacklisting in the new kernel\n");
+			dev_dbg(&rproc->dev, "not found, blacklisting in the new kernel\n");
 			sprintf(pdev_blacklist + strlen(pdev_blacklist), "%c%s:b",
 				c ? ',' : pdev_desc[0], pdev_desc + (c ? 0 : 1));
 			c++;
@@ -151,6 +151,12 @@ static int dummy_rproc_start(struct rproc *rproc)
 	bp->hdr.ramdisk_image = __pa(initrd_dma);
 	bp->hdr.ramdisk_size = initrd->size;
 	bp->hdr.ramdisk_magic = 0;
+
+	dev_info(&rproc->dev, "PAs:\n\tinitrd\t\t0x%p-0x%p (%db)\n\tcmdline\t\t0x%p-0x%p (%db)\n\tboot_params\t0x%p-0x%p (%db)\n\tkernel\t\t0x%p (fw name \"%s\")\n\tCmdline:\n\t\t%s\n\n",
+		 dma_initrd, dma_initrd + initrd->size, initrd->size, dma_str,
+		 dma_str + strlen(cmdline_override), strlen(cmdline_override),
+		 dma_bp, dma_bp + sizeof(*bp), sizeof(*bp), kernel_start_address,
+		 rproc->firmware, cmdline_str);
 
 	release_firmware(initrd);
 

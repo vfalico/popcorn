@@ -114,9 +114,8 @@ rproc_elf64_load_segments(struct rproc *rproc, const struct firmware *fw)
 	ehdr = (Elf64_Ehdr *)elf_data;
 	phdr = (Elf64_Phdr *)(elf_data + ehdr->e_phoff);
 
-	for (i = 0; i < ehdr->e_phnum; i++, phdr++) {
-		dev_info(dev, " segment %d ph addr 0x%lx size 0x%lx\n", i, phdr->p_paddr, phdr->p_memsz);
-	}
+	for (i = 0; i < ehdr->e_phnum; i++, phdr++)
+		dev_dbg(dev, " segment %d ph addr 0x%lx size 0x%lx\n", i, phdr->p_paddr, phdr->p_memsz);
 
 	phdr = (Elf64_Phdr *)(elf_data + ehdr->e_phoff);
 	/* go through the available ELF segments */
