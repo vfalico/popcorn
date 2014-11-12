@@ -962,7 +962,6 @@ void __init setup_arch(char **cmdline_p)
 			max_pfn_mapped<<PAGE_SHIFT);
 
 	setup_trampolines();
-	setup_trampolines_bsp();
 
 	init_gbpages();
 

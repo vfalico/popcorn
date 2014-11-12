@@ -14,6 +14,9 @@
 #include <linux/module.h>
 #include <linux/remoteproc.h>
 #include <linux/virtio_ids.h>
+#include <asm/cacheflush.h>
+#include <linux/memblock.h>
+
 
 #include "dummy_proc.h"
 
@@ -83,12 +86,50 @@ struct dummy_rproc_resourcetable dummy_remoteproc_resourcetable
 };
 
 struct dummy_rproc_resourcetable *lproc = &dummy_remoteproc_resourcetable;
+bool is_bsp = false;
+unsigned char *x86_trampoline_bsp_base;
+
+static int __init dummy_lproc_configure_trampoline()
+{
+	size_t size;
+
+	if (!is_bsp)
+		return 0;
+
+	size = PAGE_ALIGN(x86_trampoline_bsp_end - x86_trampoline_bsp_start);
+
+	set_memory_x((unsigned long)x86_trampoline_bsp_base, size >> PAGE_SHIFT);
+	return 0;
+}
+arch_initcall(dummy_lproc_configure_trampoline);
+
+static void __init dummy_lproc_setup_trampoline()
+{
+	phys_addr_t mem;
+	size_t size = PAGE_ALIGN(x86_trampoline_bsp_end - x86_trampoline_bsp_start);
+
+	/* Has to be in very low memory so we can execute real-mode AP code. */
+	mem = memblock_find_in_range(0, 1<<20, size, PAGE_SIZE);
+	if (mem == MEMBLOCK_ERROR)
+		panic("Cannot allocate trampoline\n");
+
+	x86_trampoline_bsp_base = __va(mem);
+	memblock_x86_reserve_range(mem, mem + size, "TRAMPOLINE_BSP");
+
+	printk(KERN_DEBUG "Base memory trampoline BSP at [%p] %llx size %zu\n",
+	       x86_trampoline_bsp_base, (unsigned long long)mem, size);
+
+	memcpy(x86_trampoline_bsp_base, x86_trampoline_bsp_start, size);
+}
 
 static int __init dummy_lproc_init(void)
 {
 
 	if (!lproc->rsc_ring0.da) {
 		printk(KERN_INFO "%s: we're the BSP\n", __func__);
+		is_bsp = true;
+
+		dummy_lproc_setup_trampoline();
 
 		return 0;
 	}
