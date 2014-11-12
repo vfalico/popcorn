@@ -47,7 +47,7 @@ struct dummy_rproc_resourcetable dummy_remoteproc_resourcetable
 	},
 	.rsc_mem = {
 		.da =		CONFIG_PHYSICAL_START,	/* we don't care about the dev address */
-		.pa =		0,			/* here be physicall address */
+		.pa =		CONFIG_PHYSICAL_START,	/* we actually need to be here */
 		.len =		VMLINUX_FIRMWARE_SIZE,	/* size please */
 		.flags =	0,			/* TODO flags */
 		.reserved =	0,			/* reserved - 0 */
