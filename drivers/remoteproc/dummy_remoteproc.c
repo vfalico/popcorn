@@ -30,6 +30,8 @@
 #include <linux/interrupt.h>
 #include <linux/irq.h>
 
+#include "dummy_proc.h"
+
 extern struct boot_params boot_params;
 
 char cmdline_override[COMMAND_LINE_SIZE];

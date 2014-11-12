@@ -15,7 +15,7 @@
 #include <linux/remoteproc.h>
 #include <linux/virtio_ids.h>
 
-#define VMLINUX_FIRMWARE_SIZE		0x6f00000
+#include "dummy_proc.h"
 
 struct dummy_rproc_resourcetable {
 	struct resource_table		main_hdr;
