@@ -112,14 +112,6 @@ void smp_dummy_lproc_kicked()
 	irq_exit();
 }
 
-/* this function should later find out the correct rproc who kicked us,
- * but, as we now have only one - we just find an rproc :)
- */
-int dummy_rproc_match(struct device *dev, void *data)
-{
-	return (dev->driver && !strcmp(dev->driver->name, DRV_NAME));
-}
-
 void (*dummy_lproc_bsp_callback)(void *) = NULL;
 void *dummy_lproc_bsp_data;
 
