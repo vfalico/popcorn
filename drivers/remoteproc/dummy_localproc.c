@@ -120,19 +120,32 @@ int dummy_rproc_match(struct device *dev, void *data)
 	return (dev->driver && !strcmp(dev->driver->name, DRV_NAME));
 }
 
+void (*dummy_lproc_bsp_callback)(void *) = NULL;
+void *dummy_lproc_bsp_data;
+
+int dummy_lproc_set_bsp_callback(void (*fn)(void *), void *data)
+{
+	if (unlikely(!is_bsp)) {
+		printk(KERN_ERR "%s: tried to register bsp callback on non-bsp.\n", __func__);
+		return -EFAULT;
+	}
+
+	dummy_lproc_bsp_callback = fn;
+	dummy_lproc_bsp_data = data;
+
+	return 0;
+}
+EXPORT_SYMBOL_GPL(dummy_lproc_set_bsp_callback);
+
 void smp_dummy_rproc_kicked()
 {
-	struct device *dev;
-	struct rproc *rproc = NULL;
 	ack_APIC_irq();
 	irq_enter();
 
-	dev = device_find_child(&platform_bus, NULL, dummy_rproc_match);
-	if (dev)
-		rproc = dev_get_drvdata(dev);
-
-	printk(KERN_INFO "BSP got kicked, rproc %s\n",
-	       rproc ? rproc->name : "NOT FOUND");
+	if (likely(dummy_lproc_bsp_callback))
+		dummy_lproc_bsp_callback(dummy_lproc_bsp_data);
+	else
+		WARN_ONCE(1, "%s: got an IPI on BSP without any callback.\n", __func__);
 
 	irq_exit();
 }

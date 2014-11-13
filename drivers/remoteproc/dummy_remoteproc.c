@@ -30,6 +30,7 @@
 #include <linux/delay.h>
 #include <linux/interrupt.h>
 #include <linux/irq.h>
+#include <linux/completion.h>
 
 #include "dummy_proc.h"
 
@@ -46,6 +47,10 @@ MODULE_PARM_DESC(boot_cpu, "cpu number to boot the firmware on");
 char *pci_devices_handover = "";
 module_param(pci_devices_handover, charp, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(pci_devices_handover, "list of pci devices to disconnect/reconnect to the kernel, in the form of 0xVENDOR_ID_HEX:0xDEVICE_ID_HEX,...");
+
+int boot_timeout = 5;
+module_param(boot_timeout, int, S_IRUGO | S_IWUSR);
+MODULE_PARM_DESC(boot_timeout, "up to how many seconds to wait for the AP boot (default 5).");
 
 static void dummy_handle_pci_handover(struct rproc *rproc, char *cmdline)
 {
@@ -77,6 +82,20 @@ static void dummy_handle_pci_handover(struct rproc *rproc, char *cmdline)
 
 	if (c)
 		sprintf(cmdline + strlen(cmdline), " %s", pdev_blacklist);
+}
+
+DECLARE_COMPLETION(dummy_rproc_boot_completion);
+
+static void dummy_rproc_boot_callback(struct rproc *rproc)
+{
+	dev_info(&rproc->dev, "got a boot confirmation from AP.\n");
+
+	complete(&dummy_rproc_boot_completion);
+}
+
+static void dummy_rproc_kick_callback(struct rproc *rproc)
+{
+	dev_info(&rproc->dev, "got a kick from AP.\n");
 }
 
 static int dummy_rproc_start(struct rproc *rproc)
@@ -161,15 +180,33 @@ static int dummy_rproc_start(struct rproc *rproc)
 
 	release_firmware(initrd);
 
+	ret = dummy_lproc_set_bsp_callback(dummy_rproc_boot_callback, rproc);
+
+	if (ret) {
+		dev_err(&rproc->dev, "failed to register IPI callback (%d).\n", ret);
+		goto free_str;
+	}
+
 	ret = mkbsp_boot_cpu(apicid, boot_cpu, kernel_start_address, bp);
 
-	if (ret)
+	if (ret) {
+		dev_err(&rproc->dev, "failed to boot (%d).\n", ret);
 		goto free_str;
+	}
 
-	/* give it some time to boot, as we need to be able to send IPIs
-	 * after we exit.
-	 */
-	msleep(2000);
+	ret = wait_for_completion_timeout(&dummy_rproc_boot_completion,
+					  HZ * boot_timeout);
+
+	if (!ret) {
+		dev_err(&rproc->dev, "didn't get a boot confirmation from AP.\n");
+		ret = -EFAULT;
+		goto free_str;
+	}
+
+	ret = dummy_lproc_set_bsp_callback(dummy_rproc_kick_callback, rproc);
+
+	if (ret)
+		dev_err(&rproc->dev, "failed to set the normal BSP IPI callback, we will miss them!\n");
 
 	return 0;
 

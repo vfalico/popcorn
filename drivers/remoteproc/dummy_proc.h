@@ -19,4 +19,6 @@
 
 #define VMLINUX_FIRMWARE_SIZE			80000000
 
+int dummy_lproc_set_bsp_callback(void (*fn)(void *), void *data);
+
 #endif /* DUMMY_PROC_H */
