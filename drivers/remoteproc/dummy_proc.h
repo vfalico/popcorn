@@ -13,8 +13,10 @@
 #ifndef DUMMY_PROC_H
 #define DUMMY_PROC_H
 
-#define VMLINUX_FIRMWARE_SIZE			80000000
+#include "remoteproc_internal.h"
 
-#define DUMMY_PROC_VECTOR			0xCF
+#define DRV_NAME "dummy-rproc"
+
+#define VMLINUX_FIRMWARE_SIZE			80000000
 
 #endif /* DUMMY_PROC_H */

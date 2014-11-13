@@ -9,7 +9,6 @@
  * License.  See the file "COPYING" in the main directory of this archive
  * for more details.
  */
-#define DRV_NAME "dummy-rproc"
 
 #include <linux/kernel.h>
 #include <linux/module.h>
@@ -27,6 +26,8 @@
 #include <linux/pci.h>
 #include <asm/bootparam.h>
 #include <asm/setup.h>
+#include <linux/sched.h>
+#include <linux/delay.h>
 #include <linux/interrupt.h>
 #include <linux/irq.h>
 
@@ -114,7 +115,7 @@ static int dummy_rproc_start(struct rproc *rproc)
 	}
 
 	if (!*cmdline_override) {
-		sprintf(cmdline_override, "console=ttyS1,115200n8 earlyprintk=ttyS1,115200n8 memblock=debug acpi_irq_nobalance no_ipi_broadcast=1 lapic_timer=1000000 mklinux debug memmap=640K@0 cma=0@0 present_mask=%d memmap=0x2e90000$640K memmap=0xB0340000$0x4e800000 memmap=4G$0xfebf0000 memmap=500M@0x2f400000",
+		sprintf(cmdline_override, "console=ttyS1,115200n8 earlyprintk=ttyS1,115200n8 memblock=debug acpi_irq_nobalance lapic_timer=1000000 mklinux debug memmap=640K@0 cma=0@0 present_mask=%d memmap=0x2e90000$640K memmap=0xB0340000$0x4e800000 memmap=4G$0xfebf0000 memmap=500M@0x2f400000 apic=debug",
 			1 << (boot_cpu - 1));
 		dummy_handle_pci_handover(rproc, cmdline_override);
 	}
@@ -160,7 +161,17 @@ static int dummy_rproc_start(struct rproc *rproc)
 
 	release_firmware(initrd);
 
-	return mkbsp_boot_cpu(apicid, boot_cpu, kernel_start_address, bp);
+	ret = mkbsp_boot_cpu(apicid, boot_cpu, kernel_start_address, bp);
+
+	if (ret)
+		goto free_str;
+
+	/* give it some time to boot, as we need to be able to send IPIs
+	 * after we exit.
+	 */
+	msleep(2000);
+
+	return 0;
 
 free_fw:
 	release_firmware(initrd);
@@ -183,7 +194,8 @@ static int dummy_rproc_stop(struct rproc *rproc)
 
 static void dummy_rproc_kick(struct rproc *rproc, int vqid)
 {
-	dev_notice(&rproc->dev, "Kicking virtqueue id #%d\n", vqid);
+	dev_notice(&rproc->dev, "Kicking virtqueue id #%d via apic %s\n", vqid, apic->name);
+	apic->send_IPI_single(boot_cpu, DUMMY_LPROC_VECTOR);
 }
 
 static struct rproc_ops dummy_rproc_ops = {

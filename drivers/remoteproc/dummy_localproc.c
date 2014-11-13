@@ -16,7 +16,10 @@
 #include <linux/virtio_ids.h>
 #include <asm/cacheflush.h>
 #include <linux/memblock.h>
-
+#include <asm/desc.h>
+#include <asm/hw_irq.h>
+#include <linux/platform_device.h>
+#include <linux/interrupt.h>
 
 #include "dummy_proc.h"
 
@@ -88,6 +91,63 @@ struct dummy_rproc_resourcetable dummy_remoteproc_resourcetable
 struct dummy_rproc_resourcetable *lproc = &dummy_remoteproc_resourcetable;
 bool is_bsp = false;
 unsigned char *x86_trampoline_bsp_base;
+
+void dummy_lproc_kick_bsp()
+{
+	if (is_bsp)
+		return;
+
+	printk(KERN_INFO "Kicking BSP.\n");
+	apic->send_IPI_single(0, DUMMY_RPROC_VECTOR);
+}
+late_initcall(dummy_lproc_kick_bsp);
+
+void smp_dummy_lproc_kicked()
+{
+	ack_APIC_irq();
+	irq_enter();
+
+	printk(KERN_INFO "AP got kicked.\n");
+
+	irq_exit();
+}
+
+/* this function should later find out the correct rproc who kicked us,
+ * but, as we now have only one - we just find an rproc :)
+ */
+int dummy_rproc_match(struct device *dev, void *data)
+{
+	return (dev->driver && !strcmp(dev->driver->name, DRV_NAME));
+}
+
+void smp_dummy_rproc_kicked()
+{
+	struct device *dev;
+	struct rproc *rproc = NULL;
+	ack_APIC_irq();
+	irq_enter();
+
+	dev = device_find_child(&platform_bus, NULL, dummy_rproc_match);
+	if (dev)
+		rproc = dev_get_drvdata(dev);
+
+	printk(KERN_INFO "BSP got kicked, rproc %s\n",
+	       rproc ? rproc->name : "NOT FOUND");
+
+	irq_exit();
+}
+
+void dummy_proc_setup_intr(void)
+{
+	if (!is_bsp) {
+		alloc_intr_gate(DUMMY_LPROC_VECTOR, dummy_lproc_kicked);
+		printk(KERN_INFO "Registered AP interrupt vector %d\n", DUMMY_LPROC_VECTOR);
+	} else {
+		alloc_intr_gate(DUMMY_RPROC_VECTOR, dummy_rproc_kicked);
+		printk(KERN_INFO "Registered BSP interrupt vector %d\n", DUMMY_RPROC_VECTOR);
+	}
+}
+pure_initcall(dummy_proc_setup_intr);
 
 static int __init dummy_lproc_configure_trampoline()
 {
