@@ -52,6 +52,10 @@ int boot_timeout = 5;
 module_param(boot_timeout, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(boot_timeout, "up to how many seconds to wait for the AP boot (default 5).");
 
+int serial_number = -1;
+module_param(serial_number, int, S_IRUGO | S_IWUSR);
+MODULE_PARM_DESC(serial_number, "set up serial console number to use (default - no serial output)");
+
 static void dummy_handle_pci_handover(struct rproc *rproc, char *cmdline)
 {
 	char pdev_desc[14], pdev_blacklist[16*10] = "pci_dev_flags=";
@@ -132,6 +136,8 @@ static int dummy_rproc_start(struct rproc *rproc)
 		sprintf(cmdline_override, "acpi_irq_nobalance lapic_timer=1000000 mklinux debug memmap=640K@0 present_mask=%d memmap=0x2e90000$640K memmap=0xB0340000$0x4e800000 memmap=4G$0xfebf0000 memmap=500M@0x2f400000",
 			1 << (boot_cpu - 1));
 		dummy_handle_pci_handover(rproc, cmdline_override);
+		if (serial_number != -1)
+			sprintf(cmdline_override + strlen(cmdline_override), " console=ttyS%d,115200n8 earlyprintk=ttyS%d,115200n8", serial_number, serial_number);
 	}
 
 	cmdline_str = dma_alloc_coherent(rproc->dev.parent, strlen(cmdline_override),
