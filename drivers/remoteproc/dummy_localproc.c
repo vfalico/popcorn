@@ -20,6 +20,13 @@
 #include <asm/hw_irq.h>
 #include <linux/platform_device.h>
 #include <linux/interrupt.h>
+#include <linux/delay.h>
+#include <linux/sched.h>
+#include <asm/apic.h>
+#include <asm/tlbflush.h>
+#include <linux/mc146818rtc.h>
+#include <asm/smpboot_hooks.h>
+#include <asm/uv/uv.h>
 
 #include "dummy_proc.h"
 
@@ -91,6 +98,65 @@ struct dummy_rproc_resourcetable dummy_remoteproc_resourcetable
 struct dummy_rproc_resourcetable *lproc = &dummy_remoteproc_resourcetable;
 bool is_bsp = false;
 unsigned char *x86_trampoline_bsp_base;
+
+int dummy_lproc_boot_remote_cpu(int boot_cpu, unsigned long start_addr, void *boot_params)
+{
+	unsigned long boot_error = 0, start_ip;
+	int apicid, send_status = 0, j, accept_status;
+
+	apicid = per_cpu(x86_bios_cpu_apicid, boot_cpu);
+
+	*(unsigned long *)TRAMPOLINE_SYM_BSP(&kernel_phys_addr) = start_addr;
+	*(unsigned long *)TRAMPOLINE_SYM_BSP(&boot_params_phys_addr) = __pa(boot_params);
+
+	start_ip = __pa(TRAMPOLINE_SYM_BSP(trampoline_data_bsp));
+	BUG_ON(!IS_ALIGNED(start_ip, PAGE_SIZE));
+
+	smpboot_setup_warm_reset_vector(start_ip);
+
+	apic_write(APIC_ESR, 0);
+	apic_read(APIC_ESR);
+	apic_icr_write(APIC_INT_LEVELTRIG | APIC_INT_ASSERT | APIC_DM_INIT,
+		       apicid);
+	send_status |= safe_apic_wait_icr_idle();
+	mdelay(10);
+
+	apic_icr_write(APIC_INT_LEVELTRIG | APIC_DM_INIT, apicid);
+	send_status |= safe_apic_wait_icr_idle();
+	mdelay(10);
+
+	for (j = 0; j < 2; j++) {
+		apic_write(APIC_ESR, 0);
+		apic_read(APIC_ESR);
+		apic_icr_write(APIC_DM_STARTUP | (start_ip >> 12),
+			       apicid);
+		udelay(300);
+		send_status = safe_apic_wait_icr_idle();
+		udelay(200);
+		apic_write(APIC_ESR, 0);
+
+		accept_status = (apic_read(APIC_ESR) & 0xEF);
+		if (send_status || accept_status)
+			break;
+	}
+
+	boot_error = send_status | accept_status;
+
+	if (boot_error) {
+		pr_err("%s: error waking up cpu %d (apic %d), start_ip 0x%p\n",
+		       __func__, boot_cpu, apicid, start_ip);
+		return boot_error;
+	}
+
+	udelay(100);
+
+	WARN_ON(*(volatile u32 *)TRAMPOLINE_SYM_BSP(trampoline_status_bsp) != 0xA5A5A5A5);
+
+	*(volatile u32 *)TRAMPOLINE_SYM_BSP(trampoline_status_bsp) = 0;
+
+	return boot_error;
+}
+EXPORT_SYMBOL(dummy_lproc_boot_remote_cpu);
 
 void dummy_lproc_kick_bsp()
 {

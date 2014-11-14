@@ -103,22 +103,17 @@ static int dummy_rproc_start(struct rproc *rproc)
 	void *kernel_start_address = rproc->bootaddr, *initrd_dma;
 	dma_addr_t dma_bp, dma_str, dma_initrd;
 	const struct firmware *initrd;
-	int apicid, ret = -ENOMEM;
 	struct boot_params *bp;
 	char *cmdline_str;
+	int ret = -ENOMEM;
 
 	dev_notice(&rproc->dev, "Powering up processor %d, params \"%s\"\n",
 		   boot_cpu, cmdline_override);
 
-	apicid = apic->cpu_present_to_apicid(boot_cpu);
-
-	if (apicid != BAD_APICID) {
-		dev_err(&rproc->dev, "The CPU%d is used by this kernel, apicid = %d\n",
-			boot_cpu, apicid);
+	if (apic->cpu_present_to_apicid(boot_cpu) != BAD_APICID) {
+		dev_err(&rproc->dev, "The CPU%d is used by this kernel", boot_cpu);
 		return -ENOEXEC;
 	}
-
-	apicid = per_cpu(x86_bios_cpu_apicid, boot_cpu);
 
 	bp = dma_alloc_coherent(rproc->dev.parent, sizeof(*bp), &dma_bp, GFP_KERNEL);
 	if (!bp) {
@@ -134,7 +129,7 @@ static int dummy_rproc_start(struct rproc *rproc)
 	}
 
 	if (!*cmdline_override) {
-		sprintf(cmdline_override, "console=ttyS1,115200n8 earlyprintk=ttyS1,115200n8 memblock=debug acpi_irq_nobalance lapic_timer=1000000 mklinux debug memmap=640K@0 cma=0@0 present_mask=%d memmap=0x2e90000$640K memmap=0xB0340000$0x4e800000 memmap=4G$0xfebf0000 memmap=500M@0x2f400000 apic=debug",
+		sprintf(cmdline_override, "acpi_irq_nobalance lapic_timer=1000000 mklinux debug memmap=640K@0 present_mask=%d memmap=0x2e90000$640K memmap=0xB0340000$0x4e800000 memmap=4G$0xfebf0000 memmap=500M@0x2f400000",
 			1 << (boot_cpu - 1));
 		dummy_handle_pci_handover(rproc, cmdline_override);
 	}
@@ -187,7 +182,7 @@ static int dummy_rproc_start(struct rproc *rproc)
 		goto free_str;
 	}
 
-	ret = mkbsp_boot_cpu(apicid, boot_cpu, kernel_start_address, bp);
+	ret = dummy_lproc_boot_remote_cpu(boot_cpu, kernel_start_address, bp);
 
 	if (ret) {
 		dev_err(&rproc->dev, "failed to boot (%d).\n", ret);

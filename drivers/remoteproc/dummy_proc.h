@@ -20,5 +20,6 @@
 #define VMLINUX_FIRMWARE_SIZE			80000000
 
 int dummy_lproc_set_bsp_callback(void (*fn)(void *), void *data);
+int dummy_lproc_boot_remote_cpu(int boot_cpu, unsigned long start_addr, void *boot_params);
 
 #endif /* DUMMY_PROC_H */
