@@ -22,4 +22,14 @@
 int dummy_lproc_set_bsp_callback(void (*fn)(void *), void *data);
 int dummy_lproc_boot_remote_cpu(int boot_cpu, unsigned long start_addr, void *boot_params);
 
+extern const unsigned char x86_trampoline_bsp_start [];
+extern const unsigned char x86_trampoline_bsp_end   [];
+extern unsigned char *x86_trampoline_bsp_base;
+extern unsigned long kernel_phys_addr;
+extern unsigned long boot_params_phys_addr;
+
+#define TRAMPOLINE_SYM_BSP(x)						\
+	((void *)(x86_trampoline_bsp_base +					\
+		  ((const unsigned char *)(x) - x86_trampoline_bsp_start)))
+
 #endif /* DUMMY_PROC_H */

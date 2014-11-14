@@ -15,12 +15,6 @@ extern const unsigned char x86_trampoline_start [];
 extern const unsigned char x86_trampoline_end   [];
 extern unsigned char *x86_trampoline_base;
 
-extern const unsigned char x86_trampoline_bsp_start [];
-extern const unsigned char x86_trampoline_bsp_end   [];
-extern unsigned char *x86_trampoline_bsp_base;
-extern unsigned long kernel_phys_addr;
-extern unsigned long boot_params_phys_addr;
-
 extern unsigned long init_rsp;
 extern unsigned long initial_code;
 extern unsigned long initial_gs;
@@ -40,20 +34,10 @@ extern const unsigned char trampoline_status_bsp[];
 	((void *)(x86_trampoline_base +					\
 		  ((const unsigned char *)(x) - x86_trampoline_start)))
 
-#define TRAMPOLINE_SYM_BSP(x)						\
-	((void *)(x86_trampoline_bsp_base +					\
-		  ((const unsigned char *)(x) - x86_trampoline_bsp_start)))
-
 /* Address of the SMP trampoline */
 static inline unsigned long trampoline_address(void)
 {
 	return virt_to_phys(TRAMPOLINE_SYM(trampoline_data));
-}
-
-/* Address of the SMP trampoline */
-static inline unsigned long trampoline_bsp_address(void)
-{
-	return virt_to_phys(TRAMPOLINE_SYM_BSP(trampoline_data_bsp));
 }
 
 #endif /* __ASSEMBLY__ */

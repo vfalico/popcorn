@@ -688,8 +688,6 @@ __SYSCALL(__NR_process_vm_readv, sys_process_vm_readv)
 __SYSCALL(__NR_process_vm_writev, sys_process_vm_writev)
 
 /* POPCORN */
-#define __NR_multikernel_boot                   512
-__SYSCALL(__NR_multikernel_boot, sys_multikernel_boot)
 #define __NR_get_boot_params_addr               513
 __SYSCALL(__NR_get_boot_params_addr, sys_get_boot_params_addr)
 #define __NR_popcorn_test_kmsg			514
