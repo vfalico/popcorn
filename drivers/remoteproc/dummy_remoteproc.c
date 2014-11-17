@@ -88,6 +88,19 @@ static void dummy_handle_pci_handover(struct rproc *rproc, char *cmdline)
 		sprintf(cmdline + strlen(cmdline), " %s", pdev_blacklist);
 }
 
+static void dummy_handle_mem_regions(struct rproc *rproc, char *cmdline)
+{
+	struct rproc_mem_entry *carveout;
+	char mem_regs_str[256] = "cma=0@0 memmap=exactmap memmap=640K@0 ";
+
+	list_for_each_entry(carveout, &rproc->carveouts, node) {
+		sprintf(mem_regs_str + strlen(mem_regs_str), "memmap=%d@0x%p ",
+			carveout->len, carveout->dma);
+	}
+
+	sprintf(cmdline + strlen(cmdline), " %s", mem_regs_str);
+}
+
 DECLARE_COMPLETION(dummy_rproc_boot_completion);
 
 static void dummy_rproc_boot_callback(struct rproc *rproc)
@@ -133,9 +146,10 @@ static int dummy_rproc_start(struct rproc *rproc)
 	}
 
 	if (!*cmdline_override) {
-		sprintf(cmdline_override, "acpi_irq_nobalance lapic_timer=1000000 mklinux debug memmap=640K@0 present_mask=%d memmap=0x2e90000$640K memmap=0xB0340000$0x4e800000 memmap=4G$0xfebf0000 memmap=500M@0x2f400000",
+		sprintf(cmdline_override, "acpi_irq_nobalance lapic_timer=1000000 mklinux debug present_mask=%d",
 			1 << (boot_cpu - 1));
 		dummy_handle_pci_handover(rproc, cmdline_override);
+		dummy_handle_mem_regions(rproc, cmdline_override);
 		if (serial_number != -1)
 			sprintf(cmdline_override + strlen(cmdline_override), " console=ttyS%d,115200n8 earlyprintk=ttyS%d,115200n8", serial_number, serial_number);
 	}

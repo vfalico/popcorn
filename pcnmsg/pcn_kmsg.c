@@ -299,6 +299,9 @@ static void map_msg_win(pcn_kmsg_work_t *w)
 	rkvirt[cpu] = ioremap_cache(rkinfo->phys_addr[cpu],
 				  ROUND_PAGE_SIZE(sizeof(struct pcn_kmsg_window)));
 
+	if (!rkvirt[cpu])
+		rkvirt[cpu] = __va(rkinfo->phys_addr[cpu]);
+
 	if (rkvirt[cpu]) {
 		KMSG_INIT("ioremapped window, virt addr 0x%p\n", 
 			  rkvirt[cpu]);

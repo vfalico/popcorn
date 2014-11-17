@@ -17,7 +17,7 @@
 
 #define DRV_NAME "dummy-rproc"
 
-#define VMLINUX_FIRMWARE_SIZE			80000000
+#define VMLINUX_FIRMWARE_SIZE			(200*1024*1024)
 
 int dummy_lproc_set_bsp_callback(void (*fn)(void *), void *data);
 int dummy_lproc_boot_remote_cpu(int boot_cpu, unsigned long start_addr, void *boot_params);

@@ -1310,6 +1310,9 @@ static void process_shmtun_wq_item(struct work_struct * work)
 				ioremap_cache(shmem_directory->percpu_phys_addr[cpu],
 					      sizeof(shmtun_percpu_t));
 
+			if (!shmem_percpu[cpu])
+				shmem_percpu[cpu] = __va(shmem_directory->percpu_phys_addr[cpu]);
+
 			printk("WQ: ioremap_cache returned 0x%p\n", 
 			       shmem_percpu[cpu]);
 
