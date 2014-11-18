@@ -40,6 +40,10 @@ char cmdline_override[COMMAND_LINE_SIZE];
 module_param(cmdline_override, charp, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(cmdline_override, "kernel boot paramters to pass to the second cpu, leave blank to auto-generate");
 
+char cmdline_append[COMMAND_LINE_SIZE];
+module_param(cmdline_append, charp, S_IRUGO | S_IWUSR);
+MODULE_PARM_DESC(cmdline_append, "kernel boot parameters to append to auto-generated ones");
+
 int boot_cpu = 1;
 module_param(boot_cpu, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(boot_cpu, "cpu number to boot the firmware on");
@@ -152,6 +156,9 @@ static int dummy_rproc_start(struct rproc *rproc)
 		if (serial_number != -1)
 			sprintf(cmdline_override + strlen(cmdline_override), " console=ttyS%d,115200n8 earlyprintk=ttyS%d,115200n8", serial_number, serial_number);
 	}
+
+	if (*cmdline_append)
+		sprintf(cmdline_override + strlen(cmdline_override), " %s", cmdline_append);
 
 	cmdline_str = dma_alloc_coherent(rproc->dev.parent, strlen(cmdline_override),
 					 &dma_str, GFP_KERNEL);
