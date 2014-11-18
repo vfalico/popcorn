@@ -40,7 +40,7 @@ char cmdline_override[COMMAND_LINE_SIZE];
 module_param(cmdline_override, charp, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(cmdline_override, "kernel boot paramters to pass to the second cpu, leave blank to auto-generate");
 
-char cmdline_append[COMMAND_LINE_SIZE];
+char *cmdline_append = "";
 module_param(cmdline_append, charp, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(cmdline_append, "kernel boot parameters to append to auto-generated ones");
 
