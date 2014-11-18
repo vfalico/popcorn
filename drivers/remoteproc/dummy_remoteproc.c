@@ -130,11 +130,6 @@ static int dummy_rproc_start(struct rproc *rproc)
 	dev_notice(&rproc->dev, "Powering up processor %d, params \"%s\"\n",
 		   boot_cpu, cmdline_override);
 
-	if (apic->cpu_present_to_apicid(boot_cpu) != BAD_APICID) {
-		dev_err(&rproc->dev, "The CPU%d is used by this kernel", boot_cpu);
-		return -ENOEXEC;
-	}
-
 	bp = dma_alloc_coherent(rproc->dev.parent, sizeof(*bp), &dma_bp, GFP_KERNEL);
 	if (!bp) {
 		dev_err(&rproc->dev, "can't allocate cma for boot_params\n");

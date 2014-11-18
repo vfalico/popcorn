@@ -27,6 +27,7 @@
 #include <linux/mc146818rtc.h>
 #include <asm/smpboot_hooks.h>
 #include <asm/uv/uv.h>
+#include <linux/cpu.h>
 
 #include "dummy_proc.h"
 
@@ -102,7 +103,15 @@ unsigned char *x86_trampoline_bsp_base;
 int dummy_lproc_boot_remote_cpu(int boot_cpu, unsigned long start_addr, void *boot_params)
 {
 	unsigned long boot_error = 0, start_ip;
-	int apicid, send_status = 0, j, accept_status;
+	int apicid, send_status = 0, j, accept_status, ret;
+
+	ret = cpu_down(boot_cpu);
+
+	if (ret) {
+		printk(KERN_ERR,"%s: couldn't cpu_down() cpu %d (errno %d)\n",
+		       __func__, boot_cpu, ret);
+		return ret;
+	}
 
 	apicid = per_cpu(x86_bios_cpu_apicid, boot_cpu);
 
