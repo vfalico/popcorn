@@ -71,7 +71,6 @@ static void dummy_handle_pci_handover(struct rproc *rproc, char *cmdline)
 			dev_info(&rproc->dev, "Found, disabling...\n");
 			tmp = pdev;
 			pdev = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, pdev);
-			disable_irq(tmp->irq);
 			pci_remove_bus_device(tmp);
 			continue;
 		} else {
@@ -146,7 +145,7 @@ static int dummy_rproc_start(struct rproc *rproc)
 	}
 
 	if (!*cmdline_override) {
-		sprintf(cmdline_override, "acpi_irq_nobalance lapic_timer=1000000 mklinux debug present_mask=%d",
+		sprintf(cmdline_override, "acpi_irq_nobalance lapic_timer=1000000 mklinux debug present_mask=%d noapic",
 			1 << (boot_cpu - 1));
 		dummy_handle_pci_handover(rproc, cmdline_override);
 		dummy_handle_mem_regions(rproc, cmdline_override);

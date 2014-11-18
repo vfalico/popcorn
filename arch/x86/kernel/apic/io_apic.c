@@ -1438,7 +1438,7 @@ static void setup_ioapic_irq(unsigned int irq, struct irq_cfg *cfg,
 	printk("%s: domain %lx target_cpus() %lx dest %x DBG smp id %d is_bsp %d is_bsp_cluster %d\n",
 			__func__, cpumask_bits(cfg->domain)[0],
 			cpumask_bits(apic->target_cpus())[0], dest,
-			smp_processor_id(), !(!lapic_is_bsp()), is_bsp_cluster );
+			smp_processor_id(), -1, is_bsp_cluster );
 	apic_printk(APIC_VERBOSE,KERN_DEBUG
 			"IOAPIC[%d]: Set routing entry (%d-%d -> 0x%x -> "
 			"IRQ %d Mode:%i Active:%i Dest:%d)\n",
@@ -1459,8 +1459,7 @@ static void setup_ioapic_irq(unsigned int irq, struct irq_cfg *cfg,
 
 	tmp_entry = ioapic_read_entry(attr->ioapic, attr->ioapic_pin);
 
-	if ( !(!lapic_is_bsp()) || is_bsp_cluster) // write only if we are on the bsp (the master)
-		ioapic_write_entry(attr->ioapic, attr->ioapic_pin, entry);
+	ioapic_write_entry(attr->ioapic, attr->ioapic_pin, entry);
 }
 
 static bool __init io_apic_pin_not_connected(int idx, int ioapic_idx, int pin)
@@ -1995,11 +1994,7 @@ void __init enable_IO_APIC(void)
 	 * Do not trust the IO-APIC being empty at bootup
 	 */
 	printk(KERN_WARNING "hard_smp_processor_id=%d boot_cpu_physical_apicid=%d lapic_is_bsp=%d\n",
-			hard_smp_processor_id(), boot_cpu_physical_apicid, !(!lapic_is_bsp()));
-	if (lapic_is_bsp()) { // this maybe substituted with a "mklinux" kernel cmd line parameter
-		printk(KERN_WARNING "clearing the IO APIC content\n");
-		clear_IO_APIC(); // the idea is that only the first kernel will clear the IO APIC content
-	}
+			hard_smp_processor_id(), boot_cpu_physical_apicid, -1);
 }
 
 /*
@@ -2305,10 +2300,6 @@ static void __target_IO_APIC_irq(unsigned int irq, unsigned int dest, struct irq
 	int apic, pin;
 	struct irq_pin_list *entry;
 	u8 vector = cfg->vector;
-
-	/* POPCORN -- continue remapping only on the bsp processor (master) */
-	if (!lapic_is_bsp())
-		return;
 
 	for_each_irq_pin(entry, cfg->irq_2_pin) {
 		unsigned int reg;
@@ -3008,7 +2999,7 @@ void __init setup_IO_APIC(void)
 	sync_Arb_IDs();
 	setup_IO_APIC_irqs();
 	init_IO_APIC_traps();
-	if (legacy_pic->nr_legacy_irqs && lapic_is_bsp())
+	if (legacy_pic->nr_legacy_irqs)
 		check_timer();
 }
 
