@@ -100,7 +100,7 @@ struct dummy_rproc_resourcetable dummy_remoteproc_resourcetable
 };
 
 struct dummy_rproc_resourcetable *lproc = &dummy_remoteproc_resourcetable;
-bool is_bsp = false;
+bool is_bsp = true;
 unsigned char *x86_trampoline_bsp_base;
 
 int dummy_lproc_boot_remote_cpu(int boot_cpu, unsigned long start_addr, void *boot_params)
