@@ -28,6 +28,9 @@
 #include <asm/smpboot_hooks.h>
 #include <asm/uv/uv.h>
 #include <linux/cpu.h>
+#include <asm/x86_init.h>
+
+#include <linux/multikernel.h>
 
 #include "dummy_proc.h"
 
@@ -281,3 +284,37 @@ static int __init dummy_lproc_init(void)
 
 }
 early_initcall(dummy_lproc_init);
+
+static DECLARE_BITMAP(dummy_lproc_cpu_bits, CONFIG_NR_CPUS) __read_mostly;
+static struct cpumask *dummy_lproc_cpu_mask = to_cpumask(dummy_lproc_cpu_bits);
+
+void __init dummy_lproc_show_banner(void)
+{
+	char cpus[NR_CPUS*5];
+
+	cpulist_scnprintf(cpus, sizeof(cpus), dummy_lproc_cpu_mask);
+	printk(KERN_INFO "dummy_lproc: booting on CPU(s) %s\n", cpus);
+
+	setup_max_cpus = cpumask_weight(dummy_lproc_cpu_mask);
+	popcorn_boot = 1;
+
+	cpumask_copy((struct cpumask *)cpu_present_mask, dummy_lproc_cpu_mask);
+	cpumask_clear((struct cpumask *)cpu_online_mask);
+	cpumask_set_cpu(first_cpu(cpu_present_map), (struct cpumask *)cpu_online_mask);
+	cpumask_copy((struct cpumask *)cpu_active_mask, cpu_online_mask);
+}
+
+static int __init dummy_lproc_early_param(char *p)
+{
+	if (cpulist_parse(p, dummy_lproc_cpu_mask)) {
+		printk(KERN_ERR "%s: failed to parse lproc cpu list, bailing out.\n",
+		       __func__);
+		return -EFAULT;
+	}
+
+	x86_init.oem.banner = dummy_lproc_show_banner;
+
+	return 0;
+}
+
+early_param("lproc", dummy_lproc_early_param);

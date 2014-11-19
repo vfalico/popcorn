@@ -1054,8 +1054,7 @@ void __init setup_arch(char **cmdline_p)
 	if (smp_found_config)
 		get_smp_config();
 
-	prefill_possible_map(); // cpu_possible_mask fill with other cpus from setup_possible_cpus, disabled_cpus...
-	prefill_present_map(); // POPCORN -- reset_present_map(); TODO HERE or before prefile_possible in order to set max_cpus from the present_map
+	prefill_possible_map();
 
 	init_cpu_to_node();
 
