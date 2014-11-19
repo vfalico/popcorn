@@ -267,18 +267,12 @@ static void __init dummy_lproc_setup_trampoline()
 
 static int __init dummy_lproc_init(void)
 {
-
-	if (!lproc->rsc_ring0.da) {
-		printk(KERN_INFO "%s: we're the BSP\n", __func__);
-		is_bsp = true;
-
-		dummy_lproc_setup_trampoline();
-
+	if (!is_bsp)
 		return 0;
-	}
 
-	printk(KERN_INFO "%s: We're the AP, vring0 pa 0x%p vring1 pa 0x%p\n",
-	       __func__, lproc->rsc_ring0.da, lproc->rsc_ring1.da);
+	printk(KERN_INFO "%s: we're the BSP\n", __func__);
+
+	dummy_lproc_setup_trampoline();
 
 	return 0;
 
@@ -311,6 +305,11 @@ static int __init dummy_lproc_early_param(char *p)
 		       __func__);
 		return -EFAULT;
 	}
+
+	printk(KERN_INFO "%s: We're the AP, vring0 pa 0x%p vring1 pa 0x%p\n",
+	       __func__, lproc->rsc_ring0.da, lproc->rsc_ring1.da);
+
+	is_bsp = false;
 
 	x86_init.oem.banner = dummy_lproc_show_banner;
 
