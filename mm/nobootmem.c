@@ -377,11 +377,7 @@ void * __init __alloc_bootmem_node_nopanic(pg_data_t *pgdat, unsigned long size,
 void * __init __alloc_bootmem_low(unsigned long size, unsigned long align,
 				  unsigned long goal)
 {
-	if (mklinux_boot) {
-		return ___alloc_bootmem(size, align, goal, ARCH_LOW_ADDRESS_LIMIT_64);
-	} else {
-		return ___alloc_bootmem(size, align, goal, ARCH_LOW_ADDRESS_LIMIT);
-	}
+	return ___alloc_bootmem(size, align, goal, ARCH_LOW_ADDRESS_LIMIT);
 }
 
 /**

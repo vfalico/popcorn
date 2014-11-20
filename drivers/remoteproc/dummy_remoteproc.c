@@ -144,7 +144,7 @@ static int dummy_rproc_start(struct rproc *rproc)
 	}
 
 	if (!*cmdline_override) {
-		sprintf(cmdline_override, "lproc=%d acpi_irq_nobalance lapic_timer=1000000 mklinux debug noapic",
+		sprintf(cmdline_override, "lproc=%d acpi_irq_nobalance lapic_timer=1000000 debug noapic",
 			boot_cpu);
 		dummy_handle_pci_handover(rproc, cmdline_override);
 		dummy_handle_mem_regions(rproc, cmdline_override);

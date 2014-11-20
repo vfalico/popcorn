@@ -18,17 +18,6 @@
 
 extern struct boot_params boot_params;
 
-int mklinux_boot = 0;
-EXPORT_SYMBOL(mklinux_boot);
-
-static int __init setup_mklinux(char *arg)
-{
-        mklinux_boot = 1;
-        return 0;
-}
-early_param("mklinux", setup_mklinux);
-
-
 /* We're going to put our syscall here, since we need to pass in
    two arguments but the reboot syscall only takes one */
 

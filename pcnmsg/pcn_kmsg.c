@@ -527,6 +527,7 @@ static int __init pcn_kmsg_init(void)
 	int rc,i;
 	unsigned long win_phys_addr, rkinfo_phys_addr;
 	struct pcn_kmsg_window *win_virt_addr;
+	bool local = false;
 
 	KMSG_INIT("entered\n");
 
@@ -585,7 +586,7 @@ static int __init pcn_kmsg_init(void)
 	/* If we're the master kernel, malloc and map the rkinfo structure and 
 	   put its physical address in boot_params; otherwise, get it from the 
 	   boot_params and map it */
-	if (!mklinux_boot) {
+	if (!boot_params.pcn_kmsg_master_window) {
 		/* rkinfo must be multiple of a page, because the granularity of
 		 * foreings mapping is per page. The following didn't worked,
 		 * the returned address is on the form 0xffff88000000, ioremap
@@ -610,6 +611,7 @@ static int __init pcn_kmsg_init(void)
 		   is. */
 		KMSG_INIT("Setting boot_params...\n");
 		boot_params.pcn_kmsg_master_window = rkinfo_phys_addr;
+		local = true;
 	}
 	else {
 		KMSG_INIT("Primary kernel rkinfo phys addr: 0x%lx\n", 
@@ -651,7 +653,7 @@ static int __init pcn_kmsg_init(void)
 	}
 
 	/* If we're not the master kernel, we need to check in */
-	if (mklinux_boot) {
+	if (local) {
 		rc = do_checkin();
 
 		if (rc) { 

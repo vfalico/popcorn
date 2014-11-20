@@ -8,7 +8,5 @@
 
 #define POPCORN_MAX_CPUS 64
 
-extern int mklinux_boot;
-
 #endif /* __LINUX_MULTIKERNEL_H */
 
