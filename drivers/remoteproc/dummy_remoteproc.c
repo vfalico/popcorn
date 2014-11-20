@@ -50,7 +50,7 @@ MODULE_PARM_DESC(boot_cpu, "cpu number to boot the firmware on");
 
 char *pci_devices_handover = "";
 module_param(pci_devices_handover, charp, S_IRUGO | S_IWUSR);
-MODULE_PARM_DESC(pci_devices_handover, "list of pci devices to disconnect/reconnect to the kernel, in the form of 0xVENDOR_ID_HEX:0xDEVICE_ID_HEX,...");
+MODULE_PARM_DESC(pci_devices_handover, "list of pci devices to disconnect/reconnect to the kernel, in the form of 0xVENDOR_ID_HEX:0xDEVICE_ID_HEX,... . To disable PCI completly set to \"disabled\".");
 
 int boot_timeout = 5;
 module_param(boot_timeout, int, S_IRUGO | S_IWUSR);
@@ -146,8 +146,14 @@ static int dummy_rproc_start(struct rproc *rproc)
 	if (!*cmdline_override) {
 		sprintf(cmdline_override, "lproc=%d acpi_irq_nobalance lapic_timer=1000000 debug noapic",
 			boot_cpu);
-		dummy_handle_pci_handover(rproc, cmdline_override);
+
+		if (!strcmp(pci_devices_handover, "disabled"))
+			sprintf(cmdline_override + strlen(cmdline_override), " pci=off");
+		else
+			dummy_handle_pci_handover(rproc, cmdline_override);
+
 		dummy_handle_mem_regions(rproc, cmdline_override);
+
 		if (serial_number != -1)
 			sprintf(cmdline_override + strlen(cmdline_override), " console=ttyS%d,115200n8 earlyprintk=ttyS%d,115200n8", serial_number, serial_number);
 	}
