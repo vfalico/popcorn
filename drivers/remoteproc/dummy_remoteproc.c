@@ -48,9 +48,9 @@ int boot_cpu = 1;
 module_param(boot_cpu, int, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(boot_cpu, "cpu number to boot the firmware on");
 
-char *pci_devices_handover = "";
+char *pci_devices_handover = "disabled";
 module_param(pci_devices_handover, charp, S_IRUGO | S_IWUSR);
-MODULE_PARM_DESC(pci_devices_handover, "list of pci devices to disconnect/reconnect to the kernel, in the form of 0xVENDOR_ID_HEX:0xDEVICE_ID_HEX,... . To disable PCI completly set to \"disabled\".");
+MODULE_PARM_DESC(pci_devices_handover, "list of pci devices to disconnect/reconnect to the kernel, in the form of 0xVENDOR_ID_HEX:0xDEVICE_ID_HEX,... . To disable PCI completly set to \"disabled\" (default).");
 
 int boot_timeout = 5;
 module_param(boot_timeout, int, S_IRUGO | S_IWUSR);
