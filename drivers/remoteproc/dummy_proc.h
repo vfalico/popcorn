@@ -19,6 +19,12 @@
 
 #define VMLINUX_FIRMWARE_SIZE			(200*1024*1024)
 
+#define DUMMY_LPROC_BSP_ID	0
+
+#define DUMMY_LPROC_IS_BSP()	(dummy_lproc_id == DUMMY_LPROC_BSP_ID)
+
+u32 dummy_lproc_id = DUMMY_LPROC_BSP_ID;
+
 int dummy_lproc_set_bsp_callback(void (*fn)(void *), void *data);
 int dummy_lproc_boot_remote_cpu(int boot_cpu, unsigned long start_addr, void *boot_params);
 

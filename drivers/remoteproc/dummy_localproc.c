@@ -100,7 +100,6 @@ struct dummy_rproc_resourcetable dummy_remoteproc_resourcetable
 };
 
 struct dummy_rproc_resourcetable *lproc = &dummy_remoteproc_resourcetable;
-bool is_bsp = true;
 unsigned char *x86_trampoline_bsp_base;
 
 int dummy_lproc_boot_remote_cpu(int boot_cpu, unsigned long start_addr, void *boot_params)
@@ -172,7 +171,7 @@ EXPORT_SYMBOL(dummy_lproc_boot_remote_cpu);
 
 void dummy_lproc_kick_bsp()
 {
-	if (is_bsp)
+	if (DUMMY_LPROC_IS_BSP())
 		return;
 
 	printk(KERN_INFO "Kicking BSP.\n");
@@ -195,7 +194,7 @@ void *dummy_lproc_bsp_data;
 
 int dummy_lproc_set_bsp_callback(void (*fn)(void *), void *data)
 {
-	if (unlikely(!is_bsp)) {
+	if (unlikely(!DUMMY_LPROC_IS_BSP())) {
 		printk(KERN_ERR "%s: tried to register bsp callback on non-bsp.\n", __func__);
 		return -EFAULT;
 	}
@@ -222,7 +221,7 @@ void smp_dummy_rproc_kicked()
 
 void dummy_proc_setup_intr(void)
 {
-	if (!is_bsp) {
+	if (!DUMMY_LPROC_IS_BSP()) {
 		alloc_intr_gate(DUMMY_LPROC_VECTOR, dummy_lproc_kicked);
 		printk(KERN_INFO "Registered AP interrupt vector %d\n", DUMMY_LPROC_VECTOR);
 	} else {
@@ -236,7 +235,7 @@ static int __init dummy_lproc_configure_trampoline()
 {
 	size_t size;
 
-	if (!is_bsp)
+	if (!DUMMY_LPROC_IS_BSP())
 		return 0;
 
 	size = PAGE_ALIGN(x86_trampoline_bsp_end - x86_trampoline_bsp_start);
@@ -267,7 +266,7 @@ static void __init dummy_lproc_setup_trampoline()
 
 static int __init dummy_lproc_init(void)
 {
-	if (!is_bsp)
+	if (!DUMMY_LPROC_IS_BSP())
 		return 0;
 
 	printk(KERN_INFO "%s: we're the BSP\n", __func__);
@@ -309,7 +308,7 @@ static int __init dummy_lproc_early_param(char *p)
 	printk(KERN_INFO "%s: We're the AP, vring0 pa 0x%p vring1 pa 0x%p\n",
 	       __func__, lproc->rsc_ring0.da, lproc->rsc_ring1.da);
 
-	is_bsp = false;
+	dummy_lproc_id = 1;
 
 	x86_init.oem.banner = dummy_lproc_show_banner;
 
