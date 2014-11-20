@@ -289,7 +289,6 @@ void __init dummy_lproc_show_banner(void)
 	printk(KERN_INFO "dummy_lproc: booting on CPU(s) %s\n", cpus);
 
 	setup_max_cpus = cpumask_weight(dummy_lproc_cpu_mask);
-	popcorn_boot = 1;
 
 	cpumask_copy((struct cpumask *)cpu_present_mask, dummy_lproc_cpu_mask);
 	cpumask_clear((struct cpumask *)cpu_online_mask);

@@ -9494,10 +9494,8 @@ static int __init process_server_init(void) {
      * Cache some local information.
      */
 //#ifndef SUPPORT_FOR_CLUSTERING
-	if(popcorn_boot == 1)
-           _cpu = cpumask_first(cpu_present_mask);
-	else
-		   _cpu = 0;
+//we're always on steroids now
+	_cpu = cpumask_first(cpu_present_mask);
 //#else
 //	   _cpu = cpumask_first(cpu_present_mask);
 //#endif

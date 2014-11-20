@@ -144,10 +144,9 @@ static int show_cpuinfo(struct seq_file *m, void *v)
 
 	seq_printf(m, "\n\n");
 
-	//append remote cpu info
+	//append remote cpu info - we're always on steroids now
 	/*mklinux_akshay*/
-	if(popcorn_boot == 1)
-		remote_proc_cpu_info(m);
+	remote_proc_cpu_info(m);
 	/*mklinux_akshay*/
 	return 0;
 }

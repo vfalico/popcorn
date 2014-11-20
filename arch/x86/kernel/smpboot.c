@@ -1158,9 +1158,6 @@ static int __init _setup_possible_cpus(char *str)
 }
 early_param("possible_cpus", _setup_possible_cpus);
 
-int popcorn_boot = 0;
-EXPORT_SYMBOL(popcorn_boot);
-
 /*
  * cpu_possible_mask should be static, it cannot change as cpu's
  * are onlined, or offlined. The reason is per-cpu data-structures
