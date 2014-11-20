@@ -650,8 +650,8 @@ static int rproc_handle_carveout(struct rproc *rproc,
 		 */
 		if (dma != rsc->pa) {
 			ret = -ENOMEM;
-			dev_err(&rproc->dev, "firmware specified tu use 1 to 1 translation of da to pa, and use 0x%p pa, however dma_alloc_coherent() allocated address starting at 0x%p pa.\n",
-				rsc->pa, dma);
+			dev_err(&rproc->dev, "firmware specified tu use 1 to 1 translation of da to pa, and use 0x%x pa, however dma_alloc_coherent() allocated address starting at 0x%x pa.\n",
+				rsc->pa, (unsigned int)dma);
 			goto dma_free;
 		}
 	}

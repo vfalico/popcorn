@@ -24,7 +24,7 @@
 u32 dummy_lproc_id = DUMMY_LPROC_BSP_ID;
 
 int dummy_lproc_set_bsp_callback(void (*fn)(void *), void *data);
-int dummy_lproc_boot_remote_cpu(int boot_cpu, unsigned long start_addr, void *boot_params);
+int dummy_lproc_boot_remote_cpu(int boot_cpu, void *start_addr, void *boot_params);
 
 extern const unsigned char x86_trampoline_bsp_start [];
 extern const unsigned char x86_trampoline_bsp_end   [];

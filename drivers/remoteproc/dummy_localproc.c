@@ -102,7 +102,7 @@ struct dummy_rproc_resourcetable dummy_remoteproc_resourcetable
 struct dummy_rproc_resourcetable *lproc = &dummy_remoteproc_resourcetable;
 unsigned char *x86_trampoline_bsp_base;
 
-int dummy_lproc_boot_remote_cpu(int boot_cpu, unsigned long start_addr, void *boot_params)
+int dummy_lproc_boot_remote_cpu(int boot_cpu, void *start_addr, void *boot_params)
 {
 	unsigned long boot_error = 0, start_ip;
 	int apicid, send_status = 0, j, accept_status, ret;
@@ -110,14 +110,14 @@ int dummy_lproc_boot_remote_cpu(int boot_cpu, unsigned long start_addr, void *bo
 	ret = cpu_down(boot_cpu);
 
 	if (ret) {
-		printk(KERN_ERR,"%s: couldn't cpu_down() cpu %d (errno %d)\n",
+		printk(KERN_ERR "%s: couldn't cpu_down() cpu %d (errno %d)\n",
 		       __func__, boot_cpu, ret);
 		return ret;
 	}
 
 	apicid = per_cpu(x86_bios_cpu_apicid, boot_cpu);
 
-	*(unsigned long *)TRAMPOLINE_SYM_BSP(&kernel_phys_addr) = start_addr;
+	*(unsigned long *)TRAMPOLINE_SYM_BSP(&kernel_phys_addr) = (unsigned long)start_addr;
 	*(unsigned long *)TRAMPOLINE_SYM_BSP(&boot_params_phys_addr) = __pa(boot_params);
 
 	start_ip = __pa(TRAMPOLINE_SYM_BSP(trampoline_data_bsp));
@@ -155,7 +155,7 @@ int dummy_lproc_boot_remote_cpu(int boot_cpu, unsigned long start_addr, void *bo
 
 	if (boot_error) {
 		pr_err("%s: error waking up cpu %d (apic %d), start_ip 0x%p\n",
-		       __func__, boot_cpu, apicid, start_ip);
+		       __func__, boot_cpu, apicid, (void *)start_ip);
 		return boot_error;
 	}
 
@@ -169,17 +169,19 @@ int dummy_lproc_boot_remote_cpu(int boot_cpu, unsigned long start_addr, void *bo
 }
 EXPORT_SYMBOL(dummy_lproc_boot_remote_cpu);
 
-void dummy_lproc_kick_bsp()
+static int __init dummy_lproc_kick_bsp(void)
 {
 	if (DUMMY_LPROC_IS_BSP())
-		return;
+		return 0;
 
 	printk(KERN_INFO "Kicking BSP.\n");
 	apic->send_IPI_single(0, DUMMY_RPROC_VECTOR);
+
+	return 0;
 }
 late_initcall(dummy_lproc_kick_bsp);
 
-void smp_dummy_lproc_kicked()
+void smp_dummy_lproc_kicked(void)
 {
 	ack_APIC_irq();
 	irq_enter();
@@ -206,7 +208,7 @@ int dummy_lproc_set_bsp_callback(void (*fn)(void *), void *data)
 }
 EXPORT_SYMBOL_GPL(dummy_lproc_set_bsp_callback);
 
-void smp_dummy_rproc_kicked()
+void smp_dummy_rproc_kicked(void)
 {
 	ack_APIC_irq();
 	irq_enter();
@@ -219,7 +221,7 @@ void smp_dummy_rproc_kicked()
 	irq_exit();
 }
 
-void dummy_proc_setup_intr(void)
+static int __init dummy_proc_setup_intr(void)
 {
 	if (!DUMMY_LPROC_IS_BSP()) {
 		alloc_intr_gate(DUMMY_LPROC_VECTOR, dummy_lproc_kicked);
@@ -228,10 +230,12 @@ void dummy_proc_setup_intr(void)
 		alloc_intr_gate(DUMMY_RPROC_VECTOR, dummy_rproc_kicked);
 		printk(KERN_INFO "Registered BSP interrupt vector %d\n", DUMMY_RPROC_VECTOR);
 	}
+
+	return 0;
 }
 pure_initcall(dummy_proc_setup_intr);
 
-static int __init dummy_lproc_configure_trampoline()
+static int __init dummy_lproc_configure_trampoline(void)
 {
 	size_t size;
 
@@ -245,7 +249,7 @@ static int __init dummy_lproc_configure_trampoline()
 }
 arch_initcall(dummy_lproc_configure_trampoline);
 
-static void __init dummy_lproc_setup_trampoline()
+static void __init dummy_lproc_setup_trampoline(void)
 {
 	phys_addr_t mem;
 	size_t size = PAGE_ALIGN(x86_trampoline_bsp_end - x86_trampoline_bsp_start);
@@ -304,7 +308,7 @@ static int __init dummy_lproc_early_param(char *p)
 		return -EFAULT;
 	}
 
-	printk(KERN_INFO "%s: We're the AP, vring0 pa 0x%p vring1 pa 0x%p\n",
+	printk(KERN_INFO "%s: We're the AP, vring0 pa 0x%x vring1 pa 0x%x\n",
 	       __func__, lproc->rsc_ring0.da, lproc->rsc_ring1.da);
 
 	dummy_lproc_id = 1;

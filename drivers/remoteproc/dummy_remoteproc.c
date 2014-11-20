@@ -36,7 +36,7 @@
 
 extern struct boot_params boot_params;
 
-char cmdline_override[COMMAND_LINE_SIZE];
+char *cmdline_override = "";
 module_param(cmdline_override, charp, S_IRUGO | S_IWUSR);
 MODULE_PARM_DESC(cmdline_override, "kernel boot paramters to pass to the second cpu, leave blank to auto-generate");
 
@@ -98,7 +98,7 @@ static void dummy_handle_mem_regions(struct rproc *rproc, char *cmdline)
 
 	list_for_each_entry(carveout, &rproc->carveouts, node) {
 		sprintf(mem_regs_str + strlen(mem_regs_str), "memmap=%d@0x%p ",
-			carveout->len, carveout->dma);
+			carveout->len, (void *)carveout->dma);
 	}
 
 	sprintf(cmdline + strlen(cmdline), " %s", mem_regs_str);
@@ -106,25 +106,28 @@ static void dummy_handle_mem_regions(struct rproc *rproc, char *cmdline)
 
 DECLARE_COMPLETION(dummy_rproc_boot_completion);
 
-static void dummy_rproc_boot_callback(struct rproc *rproc)
+static void dummy_rproc_boot_callback(void *data)
 {
+	struct rproc *rproc = (struct rproc *)data;
+
 	dev_info(&rproc->dev, "got a boot confirmation from AP.\n");
 
 	complete(&dummy_rproc_boot_completion);
 }
 
-static void dummy_rproc_kick_callback(struct rproc *rproc)
+static void dummy_rproc_kick_callback(void *data)
 {
+	struct rproc *rproc = (struct rproc *)data;
 	dev_info(&rproc->dev, "got a kick from AP.\n");
 }
 
 static int dummy_rproc_start(struct rproc *rproc)
 {
-	void *kernel_start_address = rproc->bootaddr, *initrd_dma;
+	void *kernel_start_address = (void *)rproc->bootaddr, *initrd_dma;
 	dma_addr_t dma_bp, dma_str, dma_initrd;
 	const struct firmware *initrd;
 	struct boot_params *bp;
-	char *cmdline_str;
+	char *cmdline_str, *cmdline_build_str = NULL;
 	int ret = -ENOMEM;
 
 	dev_notice(&rproc->dev, "Powering up processor %d, params \"%s\"\n",
@@ -144,7 +147,17 @@ static int dummy_rproc_start(struct rproc *rproc)
 	}
 
 	if (!*cmdline_override) {
-		sprintf(cmdline_override, "lproc=%d acpi_irq_nobalance lapic_timer=1000000 debug noapic",
+		cmdline_build_str = kmalloc(COMMAND_LINE_SIZE, GFP_KERNEL);
+
+		if (!cmdline_build_str) {
+			dev_err(&rproc->dev, "can't allocate build string.\n");
+			goto free_bp;
+		}
+
+		cmdline_override = cmdline_build_str;
+
+		sprintf(cmdline_override,
+			"lproc=%d acpi_irq_nobalance lapic_timer=1000000 debug noapic",
 			boot_cpu);
 
 		if (!strcmp(pci_devices_handover, "disabled"))
@@ -155,17 +168,21 @@ static int dummy_rproc_start(struct rproc *rproc)
 		dummy_handle_mem_regions(rproc, cmdline_override);
 
 		if (serial_number != -1)
-			sprintf(cmdline_override + strlen(cmdline_override), " console=ttyS%d,115200n8 earlyprintk=ttyS%d,115200n8", serial_number, serial_number);
+			sprintf(cmdline_override + strlen(cmdline_override),
+				" console=ttyS%d,115200n8 earlyprintk=ttyS%d,115200n8",
+				serial_number, serial_number);
+
+		if (*cmdline_append)
+			sprintf(cmdline_override + strlen(cmdline_override),
+				" %s", cmdline_append);
 	}
 
-	if (*cmdline_append)
-		sprintf(cmdline_override + strlen(cmdline_override), " %s", cmdline_append);
 
 	cmdline_str = dma_alloc_coherent(rproc->dev.parent, strlen(cmdline_override),
 					 &dma_str, GFP_KERNEL);
 	if (!cmdline_str) {
 		dev_err(&rproc->dev, "can't allocate cma for cmdline\n");
-		goto free_bp;
+		goto free_bstr;
 	}
 
 	strcpy(cmdline_str, cmdline_override);
@@ -194,11 +211,16 @@ static int dummy_rproc_start(struct rproc *rproc)
 	bp->hdr.ramdisk_size = initrd->size;
 	bp->hdr.ramdisk_magic = 0;
 
-	dev_info(&rproc->dev, "PAs:\n\tinitrd\t\t0x%p-0x%p (%db)\n\tcmdline\t\t0x%p-0x%p (%db)\n\tboot_params\t0x%p-0x%p (%db)\n\tkernel\t\t0x%p (fw name \"%s\")\n\tCmdline:\n\t\t%s\n\n",
-		 dma_initrd, dma_initrd + initrd->size, initrd->size, dma_str,
-		 dma_str + strlen(cmdline_override), strlen(cmdline_override),
-		 dma_bp, dma_bp + sizeof(*bp), sizeof(*bp), kernel_start_address,
-		 rproc->firmware, cmdline_str);
+	dev_info(&rproc->dev,
+		 "PAs:\n\tinitrd\t\t0x%p-0x%p (%db)\n\tcmdline\t\t0x%p-0x%p (%db)\n\tboot_params\t0x%p-0x%p (%db)\n\tkernel\t\t0x%p (fw name \"%s\")\n\tCmdline:\n\t\t%s\n\n",
+		 (void *)dma_initrd, (void *)(dma_initrd + initrd->size),
+		 (int)initrd->size, (void *)dma_str,
+		 (void *)(dma_str + strlen(cmdline_override)),
+		 (int)strlen(cmdline_override), (void *)dma_bp,
+		 (void *)(dma_bp + sizeof(*bp)), (int)sizeof(*bp),
+		 kernel_start_address, rproc->firmware, cmdline_str);
+
+	kfree(cmdline_build_str);
 
 	release_firmware(initrd);
 
@@ -238,6 +260,9 @@ free_fw:
 free_str:
 	dma_free_coherent(rproc->dev.parent, strlen(cmdline_override),
 			  cmdline_str, dma_str);
+
+free_bstr:
+	kfree(cmdline_build_str);
 
 free_bp:
 	dma_free_coherent(rproc->dev.parent, sizeof(*bp), bp, dma_bp);
