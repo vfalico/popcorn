@@ -30,8 +30,6 @@
 #include <linux/cpu.h>
 #include <asm/x86_init.h>
 
-#include <linux/multikernel.h>
-
 #include "dummy_proc.h"
 
 struct dummy_rproc_resourcetable {
