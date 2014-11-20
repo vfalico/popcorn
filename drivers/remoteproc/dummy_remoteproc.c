@@ -72,7 +72,7 @@ static void dummy_handle_pci_handover(struct rproc *rproc, char *cmdline)
 		sprintf(pdev_desc, "0x%04x:0x%04x", pdev->vendor, pdev->device);
 		dev_dbg(&rproc->dev, "found %x:%x pci (searching for %s)\n", pdev->vendor, pdev->device, pdev_desc);
 		if (strstr(pci_devices_handover, pdev_desc)) {
-			dev_info(&rproc->dev, "Found, disabling...\n");
+			dev_dbg(&rproc->dev, "Found, disabling...\n");
 			tmp = pdev;
 			pdev = pci_get_device(PCI_ANY_ID, PCI_ANY_ID, pdev);
 			pci_remove_bus_device(tmp);
